@@ -3,8 +3,8 @@
 #--------------------------------------------------------------
 
 variable "do_token" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) This is the DO API token. Alternatively, this can also be specified using environment variables ordered by precedence; DIGITALOCEAN_TOKEN, DIGITALOCEAN_ACCESS_TOKEN."
 }
 
@@ -13,8 +13,8 @@ variable "do_token" {
 #--------------------------------------------------------------
 
 variable "ssh_key_name" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "If ssh_public_key_file and generate_ssh_key are undefined, the name of existing DigitalOcean ssh key to utilize. If ssh_public_key_file or generate_ssh_key are defined, the name to be assoicated with the ssh key in DigitalOcean"
 }
 
@@ -65,8 +65,8 @@ variable "local_ssh_key_path" {
 #--------------------------------------------------------------
 
 variable "remote_access_ips" {
-  type = list(string)
-  default = ["0.0.0.0/0"]
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
   description = "List of external ips to be granted ssh access to public facing droplets"
 }
 
@@ -75,14 +75,14 @@ variable "remote_access_ips" {
 #--------------------------------------------------------------
 
 variable "igw_droplet_enable_bastion" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "(Optional) Boolean controlling whether to enable bastion ssh feature on droplet"
 }
 
 variable "igw_droplet_enable_notifications" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "(Optional) Boolean controlling whether to enable slack notifications. Currently this feature only applies to bastion fail2ban sshd jail notifications."
 }
 
@@ -91,25 +91,25 @@ variable "igw_droplet_enable_notifications" {
 #--------------------------------------------------------------
 
 variable "slack_channel" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "(Optional) The name of the channel to be used as the destination for webhook messages."
 }
 
 variable "slack_username" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "(Optional) Slack username to post on behalf of for notifications."
 }
 
 variable "slack_icon" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "(Optional) Slack emoji icon to used for notifications."
 }
 
 variable "slack_webhook_url" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "(Optional) The Incoming Webhook URL"
 }

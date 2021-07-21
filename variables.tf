@@ -1,139 +1,10 @@
 #--------------------------------------------------------------
-# Labeling
-#--------------------------------------------------------------
-
-variable "additional_tag_map" {
-  type        = map(string)
-  default     = {}
-  description = "Additional tags for appending to tags_as_list_of_maps. Not added to `tags`."
-}
-
-variable "attributes" {
-  type        = list(string)
-  default     = []
-  description = "Additional attributes (e.g. `1`)"
-}
-
-variable "context" {
-  type = object({
-    enabled             = bool
-    namespace           = string
-    environment         = string
-    stage               = string
-    name                = string
-    delimiter           = string
-    attributes          = list(string)
-    tags                = map(string)
-    additional_tag_map  = map(string)
-    regex_replace_chars = string
-    label_order         = list(string)
-    id_length_limit     = number
-  })
-  default = {
-    enabled             = true
-    namespace           = null
-    environment         = null
-    stage               = null
-    name                = null
-    delimiter           = null
-    attributes          = []
-    tags                = {}
-    additional_tag_map  = {}
-    regex_replace_chars = null
-    label_order         = []
-    id_length_limit     = null
-  }
-  description = <<-EOT
-    Single object for setting entire context at once.
-    See description of individual variables for details.
-    Leave string and numeric variables as `null` to use default value.
-    Individual variable settings (non-null) override settings in context object,
-    except for attributes, tags, and additional_tag_map, which are merged.
-  EOT
-}
-
-variable "delimiter" {
-  type        = string
-  default     = null
-  description = <<-EOT
-    Delimiter to be used between `namespace`, `environment`, `stage`, `name` and `attributes`.
-    Defaults to `-` (hyphen). Set to `""` to use no delimiter at all.
-  EOT
-}
-
-variable "enabled" {
-  type        = bool
-  default     = true
-  description = "Set to false to prevent the module from creating any resources"
-}
-
-variable "environment" {
-  type        = string
-  default     = null
-  description = "Environment, e.g. 'uw2', 'us-west-2', OR 'prod', 'staging', 'dev', 'UAT'"
-}
-
-variable "id_length_limit" {
-  type        = number
-  default     = null
-  description = <<-EOT
-    Limit `id` to this many characters.
-    Set to `0` for unlimited length.
-    Set to `null` for default, which is `0`.
-    Does not affect `id_full`.
-  EOT
-}
-
-variable "label_order" {
-  type        = list(string)
-  default     = null
-  description = <<-EOT
-    The naming order of the id output and Name tag.
-    Defaults to ["namespace", "environment", "stage", "name", "attributes"].
-    You can omit any of the 5 elements, but at least one must be present.
-  EOT
-}
-
-variable "name" {
-  type        = string
-  default     = null
-  description = "Solution name, e.g. 'app' or 'jenkins'"
-}
-
-variable "namespace" {
-  type        = string
-  default     = null
-  description = "Namespace, which could be your organization name or abbreviation, e.g. 'eg' or 'cp'"
-}
-
-variable "regex_replace_chars" {
-  type        = string
-  default     = null
-  description = <<-EOT
-    Regex to replace chars with empty string in `namespace`, `environment`, `stage` and `name`.
-    If not set, `"/[^a-zA-Z0-9-]/"` is used to remove all characters other than hyphens, letters and digits.
-  EOT
-}
-
-variable "stage" {
-  type        = string
-  default     = null
-  description = "Stage, e.g. 'prod', 'staging', 'dev', OR 'source', 'build', 'test', 'deploy', 'release'"
-}
-
-variable "tags" {
-  type        = map(string)
-  default     = {}
-  description = "Additional tags (e.g. `map('BusinessUnit','XYZ')`"
-}
-
-#--------------------------------------------------------------
 # SSH-Key
 #--------------------------------------------------------------
 
 variable "ssh_key_name" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "If ssh_public_key_file and generate_ssh_key are undefined, the name of existing DigitalOcean ssh key to utilize. If ssh_public_key_file or generate_ssh_key are defined, the name to be assoicated with the ssh key in DigitalOcean"
 }
 
@@ -184,26 +55,26 @@ variable "local_ssh_key_path" {
 #--------------------------------------------------------------
 
 variable "vpc_name" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) A name for the VPC. Must be unique and contain alphanumeric characters, dashes, and periods only."
 }
 
 variable "vpc_region" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) The DigitalOcean region slug for the VPC's location."
 }
 
 variable "vpc_description" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) A free-form text field up to a limit of 255 characters to describe the VPC."
 }
 
 variable "vpc_ip_range" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) The range of IP addresses for the VPC in CIDR notation. Network ranges cannot overlap with other networks in the same account and must be in range of private addresses as defined in RFC1918. It may not be larger than /16 or smaller than /24."
 }
 
@@ -212,86 +83,86 @@ variable "vpc_ip_range" {
 #--------------------------------------------------------------
 
 variable "igw_droplet_image" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) The Droplet image ID or slug."
 }
 
 variable "igw_droplet_name" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) The Droplet name."
 }
 
 variable "igw_droplet_size" {
-  type = string
-  default = "s-1vcpu-1gb"
+  type        = string
+  default     = "s-1vcpu-1gb"
   description = "(Required) The unique slug that indentifies the type of Droplet."
 }
 
 variable "igw_droplet_backups" {
-  type = bool
-  default = null
+  type        = bool
+  default     = null
   description = "(Optional) Boolean controlling if backups are made. Defaults to false."
 }
 
 variable "igw_droplet_monitoring" {
-  type = bool
-  default = true
+  type        = bool
+  default     = true
   description = "(Optional) Boolean controlling whether monitoring agent is installed. Defaults to false."
 }
 
 variable "igw_droplet_ipv6" {
-  type = bool
-  default = null
+  type        = bool
+  default     = null
   description = "(Optional) Boolean controlling if IPv6 is enabled. Defaults to false."
 }
 
 variable "igw_droplet_vpc_uuid" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) The ID of the VPC where the Droplet will be located."
 }
 
 variable "igw_droplet_ssh_keys" {
-  type = list(string)
-  default = null
+  type        = list(string)
+  default     = null
   description = "(Optional) A list of SSH IDs or fingerprints to enable in the format [12345, 123456]."
 }
 
 variable "igw_droplet_resize_disk" {
-  type = bool
-  default = null
+  type        = bool
+  default     = null
   description = "(Optional) Boolean controlling whether to increase the disk size when resizing a Droplet. It defaults to true. When set to false, only the Droplet's RAM and CPU will be resized. Increasing a Droplet's disk size is a permanent change. Increasing only RAM and CPU is reversible."
 }
 
 variable "igw_droplet_tags" {
-  type = list(string)
-  default = null
+  type        = list(string)
+  default     = null
   description = "(Optional) A list of the tags to be applied to this Droplet."
 }
 
 variable "igw_droplet_user_data" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) - A string of the desired User Data for the Droplet."
 }
 
 variable "igw_droplet_volume_ids" {
-  type = list(string)
-  default = null
+  type        = list(string)
+  default     = null
   description = "(Optional) - A list of the IDs of each block storage volume to be attached to the Droplet."
 }
 
 variable "igw_droplet_enable_bastion" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "(Optional) Boolean controlling whether to enable bastion ssh feature on droplet"
 }
 
 variable "igw_droplet_enable_notifications" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "(Optional) Boolean controlling whether to enable slack notifications. Currently this feature only applies to bastion fail2ban sshd jail notifications."
 }
 
@@ -300,26 +171,26 @@ variable "igw_droplet_enable_notifications" {
 #--------------------------------------------------------------
 
 variable "slack_channel" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "(Optional) The name of the channel to be used as the destination for webhook messages."
 }
 
 variable "slack_username" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "(Optional) Slack username to post on behalf of for notifications."
 }
 
 variable "slack_icon" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "(Optional) Slack emoji icon to used for notifications."
 }
 
 variable "slack_webhook_url" {
-  type = string
-  default = ""
+  type        = string
+  default     = ""
   description = "(Optional) The Incoming Webhook URL"
 }
 
@@ -328,50 +199,50 @@ variable "slack_webhook_url" {
 #--------------------------------------------------------------
 
 variable "igw_volume_enabled" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "Boolean controlling whether a volume will be created and attached to the internet gateway instnace"
 }
 
 variable "igw_volume_name" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) A name for the block storage volume. Must be lowercase and be composed only of numbers, letters and '-', up to a limit of 64 characters."
 }
 
 variable "igw_volume_size" {
-  type = number
-  default = null
+  type        = number
+  default     = null
   description = "(Required) The size of the block storage volume in GiB. If updated, can only be expanded."
 }
 
 variable "igw_volume_description" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) A free-form text field up to a limit of 1024 bytes to describe a block storage volume."
 }
 
 variable "igw_volume_snapshot_id" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) The ID of an existing volume snapshot from which the new volume will be created. If supplied, the region and size will be limitied on creation to that of the referenced snapshot"
 }
 
 variable "igw_volume_initial_filesystem_type" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) Initial filesystem type (xfs or ext4) for the block storage volume."
 }
 
 variable "igw_volume_initial_filesystem_label" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) Initial filesystem label for the block storage volume."
 }
 
 variable "igw_volume_tags" {
-  type = list(string)
-  default = null
+  type        = list(string)
+  default     = null
   description = "(Optional) A list of the tags to be applied to this Volume."
 }
 
@@ -380,8 +251,8 @@ variable "igw_volume_tags" {
 #--------------------------------------------------------------
 
 variable "igw_firewall_name" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) The Firewall name"
 }
 
@@ -423,80 +294,80 @@ variable "igw_firewall_outbound_rules" {
 #--------------------------------------------------------------
 
 variable "private_droplet_count" {
-  type = number
-  default = 1
+  type        = number
+  default     = 1
   description = "(Optional) Number of private droplet instances to create. Defauts to 1."
 }
 
 variable "private_droplet_image" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) The Droplet image ID or slug."
 }
 
 variable "private_droplet_name" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) The Droplet name."
 }
 
 variable "private_droplet_size" {
-  type = string
-  default = "s-1vcpu-1gb"
+  type        = string
+  default     = "s-1vcpu-1gb"
   description = "(Required) The unique slug that indentifies the type of Droplet."
 }
 
 variable "private_droplet_backups" {
-  type = bool
-  default = null
+  type        = bool
+  default     = null
   description = "(Optional) Boolean controlling if backups are made. Defaults to false."
 }
 
 variable "private_droplet_monitoring" {
-  type = bool
-  default = null
+  type        = bool
+  default     = null
   description = "(Optional) Boolean controlling whether monitoring agent is installed. Defaults to false."
 }
 
 variable "private_droplet_ipv6" {
-  type = bool
-  default = null
+  type        = bool
+  default     = null
   description = "(Optional) Boolean controlling if IPv6 is enabled. Defaults to false."
 }
 
 variable "private_droplet_vpc_uuid" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) The ID of the VPC where the Droplet will be located."
 }
 
 variable "private_droplet_ssh_keys" {
-  type = list(string)
-  default = null
+  type        = list(string)
+  default     = null
   description = "(Optional) A list of SSH IDs or fingerprints to enable in the format [12345, 123456]."
 }
 
 variable "private_droplet_resize_disk" {
-  type = bool
-  default = null
+  type        = bool
+  default     = null
   description = "(Optional) Boolean controlling whether to increase the disk size when resizing a Droplet. It defaults to true. When set to false, only the Droplet's RAM and CPU will be resized. Increasing a Droplet's disk size is a permanent change. Increasing only RAM and CPU is reversible."
 }
 
 variable "private_droplet_tags" {
-  type = list(string)
-  default = null
+  type        = list(string)
+  default     = null
   description = "(Optional) A list of the tags to be applied to this Droplet."
 }
 
 variable "private_droplet_user_data" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) - A string of the desired User Data for the Droplet."
 }
 
 variable "private_droplet_volume_ids" {
-  type = list(string)
-  default = null
+  type        = list(string)
+  default     = null
   description = "(Optional) - A list of the IDs of each block storage volume to be attached to the Droplet."
 }
 
@@ -505,50 +376,50 @@ variable "private_droplet_volume_ids" {
 #--------------------------------------------------------------
 
 variable "private_volume_enabled" {
-  type = bool
-  default = false
+  type        = bool
+  default     = false
   description = "Boolean controlling whether a volume will be created and attached to the private instnace(s)"
 }
 
 variable "private_volume_name" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) A name for the block storage volume. Must be lowercase and be composed only of numbers, letters and '-', up to a limit of 64 characters."
 }
 
 variable "private_volume_size" {
-  type = number
-  default = null
+  type        = number
+  default     = null
   description = "(Required) The size of the block storage volume in GiB. If updated, can only be expanded."
 }
 
 variable "private_volume_description" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) A free-form text field up to a limit of 1024 bytes to describe a block storage volume."
 }
 
 variable "private_volume_snapshot_id" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) The ID of an existing volume snapshot from which the new volume will be created. If supplied, the region and size will be limitied on creation to that of the referenced snapshot"
 }
 
 variable "private_volume_initial_filesystem_type" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) Initial filesystem type (xfs or ext4) for the block storage volume."
 }
 
 variable "private_volume_initial_filesystem_label" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Optional) Initial filesystem label for the block storage volume."
 }
 
 variable "private_volume_tags" {
-  type = list(string)
-  default = null
+  type        = list(string)
+  default     = null
   description = "(Optional) A list of the tags to be applied to this Volume."
 }
 
@@ -557,19 +428,19 @@ variable "private_volume_tags" {
 #--------------------------------------------------------------
 
 variable "private_firewall_name" {
-  type = string
-  default = null
+  type        = string
+  default     = null
   description = "(Required) The Firewall name"
 }
 
 variable "private_firewall_inbound_rules" {
-  type = list(any)
-  default = []
+  type        = list(any)
+  default     = []
   description = "(Optional) The inbound access rule block for the Firewall."
 }
 
 variable "private_firewall_outbound_rules" {
-  type = list(any)
-  default = []
+  type        = list(any)
+  default     = []
   description = "(Optional) The outbound access rule block for the Firewall."
 }

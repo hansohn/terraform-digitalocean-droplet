@@ -25,7 +25,7 @@ resource "tls_private_key" "generated" {
 
 resource "digitalocean_ssh_key" "generated" {
   count      = module.this.enabled && var.generate_ssh_key ? 1 : 0
-  name       = var.ssh_key_name != null ? var.ssh_key_name : module.this.id
+  name       = coalesce(var.ssh_key_name, module.this.id)
   public_key = tls_private_key.generated[0].public_key_openssh
 }
 

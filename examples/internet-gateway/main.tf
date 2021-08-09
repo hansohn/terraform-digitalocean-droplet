@@ -3,103 +3,38 @@ provider "digitalocean" {
 }
 
 module "igw" {
-  source = "../../"
-
-  # labeling
-  namespace   = "company"
-  environment = "dev"
-  enabled     = true
+  source  = "../../"
+  context = module.this.context
 
   # ssh-key
   generate_ssh_key       = var.generate_ssh_key
   ssh_key_name           = var.ssh_key_name
   ssh_public_key_file    = var.ssh_public_key_file
-  local_download_enabled = true
-  local_ssh_key_path     = "~/.ssh"
+  local_download_enabled = var.local_download_enabled
+  local_ssh_key_path     = var.local_ssh_key_path
 
   # vpc
-  vpc_region      = "sfo3"
-  vpc_description = "test vpc for igw poc"
-  vpc_ip_range    = "10.10.10.0/24"
+  vpc_region      = var.vpc_region
+  vpc_description = var.vpc_description
+  vpc_ip_range    = var.vpc_ip_range
 
   # igw_droplet
-  igw_droplet_image                = "ubuntu-18-04-x64"
-  igw_droplet_monitoring           = true
+  igw_droplet_image                = var.igw_droplet_image
+  igw_droplet_monitoring           = var.igw_droplet_monitoring
   igw_droplet_enable_bastion       = var.igw_droplet_enable_bastion
   igw_droplet_enable_notifications = var.igw_droplet_enable_notifications
 
   # igw_firewall
-  igw_firewall_inbound_rules = concat(
-    [
-      for ip in var.remote_access_ips :
-      {
-        protocol         = "tcp"
-        port_range       = "22"
-        source_addresses = ip
-      }
-    ],
-    [
-      {
-        protocol    = "icmp"
-        source_tags = "private"
-      },
-      {
-        protocol    = "tcp"
-        port_range  = "all"
-        source_tags = "private"
-      },
-      {
-        protocol    = "udp"
-        port_range  = "all"
-        source_tags = "private"
-      }
-    ]
-  )
-  igw_firewall_outbound_rules = [
-    {
-      protocol              = "icmp"
-      destination_addresses = "0.0.0.0/0, ::/0"
-    },
-    {
-      protocol              = "tcp"
-      port_range            = "all"
-      destination_addresses = "0.0.0.0/0, ::/0"
-    },
-    {
-      protocol              = "udp"
-      port_range            = "all"
-      destination_addresses = "0.0.0.0/0, ::/0"
-    }
-  ]
+  igw_firewall_inbound_rules  = var.igw_firewall_inbound_rules
+  igw_firewall_outbound_rules = var.igw_firewall_outbound_rules
 
   # private_droplet
-  private_droplet_image      = "ubuntu-18-04-x64"
-  private_droplet_monitoring = true
+  private_droplet_image      = var.private_droplet_image
+  private_droplet_monitoring = var.private_droplet_monitoring
 
   # private_firewall
-  private_firewall_inbound_rules = [
-    {
-      protocol    = "tcp"
-      port_range  = "22"
-      source_tags = "igw"
-    }
-  ]
-  private_firewall_outbound_rules = [
-    {
-      protocol              = "icmp"
-      destination_addresses = "0.0.0.0/0, ::/0"
-    },
-    {
-      protocol              = "tcp"
-      port_range            = "all"
-      destination_addresses = "0.0.0.0/0, ::/0"
-    },
-    {
-      protocol              = "udp"
-      port_range            = "all"
-      destination_addresses = "0.0.0.0/0, ::/0"
-    }
-  ]
+  private_firewall_inbound_rules  = var.private_firewall_inbound_rules
+  private_firewall_outbound_rules = var.private_firewall_outbound_rules
 
   # slack notifications
   slack_channel     = var.slack_channel

@@ -48,9 +48,7 @@ jobs:
 
     # Generates an execution plan for Terraform
     - name: Terraform Plan
-      run: terraform plan
-      with:
-        args: ${{ env.tf_actions_var_file }}
+      run: terraform plan ${{ env.tf_actions_var_file }}
 
     # On push to main, build or change infrastructure according to Terraform configuration files
     # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". 

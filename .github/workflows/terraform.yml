@@ -17,11 +17,15 @@ jobs:
     name: 'Terraform'
     runs-on: ubuntu-latest
     environment: production
+    env:
+      tf_actions_working_dir: ./examples/internet-gateway
+      tf_actions_var_file: '-var-file=fixtures.sfo3.tfvars'
 
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
         shell: bash
+        working-directory: ${{ env.tf_actions_working_dir }}
 
     steps:
     # Checkout the repository to the GitHub Actions runner
@@ -45,6 +49,7 @@ jobs:
     # Generates an execution plan for Terraform
     - name: Terraform Plan
       run: terraform plan
+      args: ${{ env.tf_actions_var_file }}
 
     # On push to main, build or change infrastructure according to Terraform configuration files
     # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". 

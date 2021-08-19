@@ -1,4 +1,4 @@
-# This workflow installs the latest version of Terraform CLI and configures the Terraform CLI configuration file
+ This workflow installs the latest version of Terraform CLI and configures the Terraform CLI configuration file
 # with an API token for Terraform Cloud (app.terraform.io). On pull request events, this workflow will run
 # `terraform init`, `terraform fmt`, and `terraform plan` (speculative plan via Terraform Cloud). On push events
 # to the main branch, `terraform apply` will be executed.
@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     env:
-      tf_actions_working_dir: ./examples/internet-gateway
+      tf_actions_working_dir: './examples/internet-gateway'
       tf_actions_var_file: '-var-file=fixtures.sfo3.tfvars'
 
     # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
@@ -49,7 +49,8 @@ jobs:
     # Generates an execution plan for Terraform
     - name: Terraform Plan
       run: terraform plan
-      args: ${{ env.tf_actions_var_file }}
+      with:
+        args: ${{ env.tf_actions_var_file }}
 
     # On push to main, build or change infrastructure according to Terraform configuration files
     # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". 

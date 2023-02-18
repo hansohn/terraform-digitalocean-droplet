@@ -42,9 +42,9 @@ resource "local_file" "public_key" {
   file_permission = "0644"
 }
 
-resource "local_file" "private_key" {
-  count             = module.this.enabled && var.generate_ssh_key && var.local_download_enabled ? 1 : 0
-  sensitive_content = tls_private_key.generated[0].private_key_pem
+resource "local_sensitive_file" "private_key" {
+  count   = module.this.enabled && var.generate_ssh_key && var.local_download_enabled ? 1 : 0
+  content = tls_private_key.generated[0].private_key_pem
   filename = format(
     "%s/%s%s%s",
     pathexpand(var.local_ssh_key_path),

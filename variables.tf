@@ -250,6 +250,12 @@ variable "igw_firewall_name" {
   description = "(Required) The Firewall name"
 }
 
+variable "igw_firewall_tags" {
+  type        = list(string)
+  default     = ["igw"]
+  description = "(Optional) - The names of the Tags assigned to the Firewall."
+}
+
 variable "igw_firewall_inbound_rules" {
   type    = list(any)
   default = []
@@ -425,7 +431,7 @@ variable "private_firewall_name" {
 
 variable "private_firewall_tags" {
   type        = list(string)
-  default     = []
+  default     = ["private"]
   description = "(Optional) - The names of the Tags assigned to the Firewall."
 }
 

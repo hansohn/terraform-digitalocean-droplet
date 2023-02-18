@@ -264,7 +264,7 @@ variable "igw_firewall_inbound_rules" {
 }
 
 variable "igw_firewall_outbound_rules" {
-  type = list(any)
+  type    = list(any)
   default = []
   # default = [
   #   {

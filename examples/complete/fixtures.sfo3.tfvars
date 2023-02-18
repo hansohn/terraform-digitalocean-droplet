@@ -1,4 +1,4 @@
-namespace   = "company"
+namespace   = "hansohn"
 environment = "dev"
 enabled     = true
 
@@ -25,7 +25,7 @@ igw_firewall_inbound_rules = [
   # {
   #   protocol         = "tcp"
   #   port_range       = "22"
-  #   source_addresses = ["0.0.0.0/0", "::/0"]
+  #   source_addresses = "0.0.0.0/0,::/0"
   # },
   {
     protocol    = "icmp"
@@ -46,17 +46,17 @@ igw_firewall_inbound_rules = [
 igw_firewall_outbound_rules = [
   {
     protocol              = "icmp"
-    destination_addresses = "0.0.0.0/0, ::/0"
+    destination_addresses = "0.0.0.0/0,::/0"
   },
   {
     protocol              = "tcp"
     port_range            = "all"
-    destination_addresses = "0.0.0.0/0, ::/0"
+    destination_addresses = "0.0.0.0/0,::/0"
   },
   {
     protocol              = "udp"
     port_range            = "all"
-    destination_addresses = "0.0.0.0/0, ::/0"
+    destination_addresses = "0.0.0.0/0,::/0"
   }
 ]
 
@@ -75,16 +75,16 @@ private_firewall_inbound_rules = [
 private_firewall_outbound_rules = [
   {
     protocol              = "icmp"
-    destination_addresses = "0.0.0.0/0, ::/0"
+    destination_addresses = "0.0.0.0/0,::/0"
   },
   {
     protocol              = "tcp"
     port_range            = "all"
-    destination_addresses = "0.0.0.0/0, ::/0"
+    destination_addresses = "0.0.0.0/0,::/0"
   },
   {
     protocol              = "udp"
     port_range            = "all"
-    destination_addresses = "0.0.0.0/0, ::/0"
+    destination_addresses = "0.0.0.0/0,::/0"
   }
 ]

@@ -1,66 +1,152 @@
-# This workflow installs the latest version of Terraform CLI and configures the Terraform CLI configuration file
-# with an API token for Terraform Cloud (app.terraform.io). On pull request events, this workflow will run
-# `terraform init`, `terraform fmt`, and `terraform plan` (speculative plan via Terraform Cloud). On push events
-# to the main branch, `terraform apply` will be executed.
-#
-
-name: 'Terraform'
+---
+name: terraform
 
 on:
+  workflow_dispatch:
   push:
     branches:
-    - main
-  pull_request:
+      - '*'
+    pull_request:
+      types:
+        - opened
+        - reopened
+        - synchronize
+    tags:
+      - 'v?[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  terraform:
-    name: 'Terraform'
+  terraform_modules:
+    name: loc_tf_modules
     runs-on: ubuntu-latest
-    environment: production
-    env:
-      tf_actions_working_dir: './examples/internet-gateway'
-      tf_actions_var_file: '-var-file=fixtures.sfo3.tfvars'
-
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
-    defaults:
-      run:
-        shell: bash
-        working-directory: ${{ env.tf_actions_working_dir }}
-
     steps:
-    # Checkout the repository to the GitHub Actions runner
-    - name: Checkout
-      uses: actions/checkout@v2
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Build Matrix
+        id: matrix
+        run: |
+          DIRS=$(python -c "import json; import glob; print(json.dumps([x.replace('/versions.tf', '') for x in glob.glob('./**/versions.tf', recursive=True)]))")
+          echo directories=$DIRS >> $GITHUB_OUTPUT
+    outputs:
+      directories: ${{ steps.matrix.outputs.directories }}
 
-    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
-      with:
-        cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
+  terraform_versions:
+    name: get_tf_vers
+    needs:
+      - terraform_modules
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        directory: ${{ fromJson(needs.terraform_modules.outputs.directories) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Terraform min/max versions
+        id: versions
+        uses: clowdhaus/terraform-min-max@v1.1.1
+        with:
+          directory: ${{ matrix.directory }}
+    outputs:
+      minVersion: ${{ steps.versions.outputs.minVersion }}
+      maxVersion: ${{ steps.versions.outputs.maxVersion }}
 
-    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-    - name: Terraform Init
-      id: init
-      run: terraform init
+  validate_min_versions:
+    name: test_tf_min_ver
+    needs:
+      - terraform_modules
+      - terraform_versions
+    runs-on: ubuntu-latest
+    container: hansohn/terraform:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJson(needs.terraform_modules.outputs.directories) }}
+        version:
+          - ${{ needs.terraform_versions.outputs.minVersion }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Terraform v${{ matrix.version }}
+        run: tfget ${{ matrix.version }}
+      - name: Validate
+        run: |
+            cd ${{ matrix.directory }}
+            terraform init --backend=false
+            terraform validate
 
-    # Checks that all Terraform configuration files adhere to a canonical format
-    - name: Terraform Format
-      id: fmt
-      run: terraform fmt -check
+  validate_max_versions:
+    name: test_tf_max_ver
+    needs:
+      - terraform_modules
+      - terraform_versions
+    runs-on: ubuntu-latest
+    container: hansohn/terraform:latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory: ${{ fromJson(needs.terraform_modules.outputs.directories) }}
+        version:
+          - ${{ needs.terraform_versions.outputs.maxVersion }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Terraform v${{ matrix.version }}
+        run: tfget ${{ matrix.version }}
+      - name: Terraform Fmt
+        run: |
+            cd ${{ matrix.directory }}
+            terraform fmt --check
+      - name: Validate
+        run: |
+            cd ${{ matrix.directory }}
+            terraform init --backend=false
+            terraform validate
+      - name: Tflint
+        run: |
+            tflint \
+              --chdir=${{ matrix.directory }} \
+              --only=terraform_comment_syntax \
+              --only=terraform_deprecated_index \
+              --only=terraform_deprecated_interpolation \
+              --only=terraform_documented_outputs \
+              --only=terraform_documented_variables \
+              --only=terraform_module_pinned_source \
+              --only=terraform_naming_convention \
+              --only=terraform_required_providers \
+              --only=terraform_required_version \
+              --only=terraform_typed_variables \
+              --only=terraform_workspace_remote
+      - name: Terraform Docs
+        if: ${{ !startsWith(matrix.directory, './examples/') }}
+        run: |
+            terraform-docs \
+              --lockfile=false \
+              --output-check=true \
+              --output-file README.md \
+              --output-mode inject \
+              markdown \
+              ${{ matrix.directory }}
 
-    - name: Terraform Validate
-      id: validate
-      run: terraform validate -no-color
+  slack:
+    if: always()
+    needs:
+      - terraform_modules
+      - terraform_versions
+      - validate_min_versions
+      - validate_max_versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    # Generates an execution plan for Terraform
-    - name: Terraform Plan
-      id: plan
-      run: terraform plan ${{ env.tf_actions_var_file }}
-
-    # On push to main, build or change infrastructure according to Terraform configuration files
-    # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". 
-    # See the documentation on "strict" required status checks for more information: 
-    # https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
-    # - name: Terraform Apply
-    #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    #   run: terraform apply -auto-approve
+      - name: Slack Notification
+        uses: Gamesight/slack-workflow-status@master
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          channel: ${{ secrets.SLACK_CHANNEL_ID }}
+          name: ${{ secrets.SLACK_USERNAME }}
+          icon_url: "https://cdn-icons-png.flaticon.com/512/25/25231.png"

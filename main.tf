@@ -4,7 +4,7 @@
 
 module "igw_label" {
   source     = "cloudposse/label/null"
-  version    = "0.24.1" # requires Terraform >= 0.13.0
+  version    = "0.25.0"
   attributes = compact(concat(module.this.attributes, ["igw"]))
   context    = module.this.context
   enabled    = module.this.enabled
@@ -12,7 +12,7 @@ module "igw_label" {
 
 module "private_label" {
   source     = "cloudposse/label/null"
-  version    = "0.24.1" # requires Terraform >= 0.13.0
+  version    = "0.25.0"
   attributes = compact(concat(module.this.attributes, ["private"]))
   context    = module.this.context
   enabled    = module.this.enabled
@@ -23,13 +23,17 @@ module "private_label" {
 #--------------------------------------------------------------
 
 module "ssh_key" {
-  source              = "./modules/ssh-key"
-  context             = module.this.context
-  enabled             = module.this.enabled
-  ssh_key_name        = var.ssh_key_name
-  generate_ssh_key    = var.generate_ssh_key
-  ssh_public_key_file = var.ssh_public_key_file
-  local_ssh_key_path  = var.local_ssh_key_path
+  source                 = "./modules/ssh-key"
+  context                = module.this.context
+  enabled                = module.this.enabled
+  algorithm              = var.algorithm
+  ecdsa_curve            = var.ecdsa_curve
+  generate_ssh_key       = var.generate_ssh_key
+  local_download_enabled = var.local_download_enabled
+  local_ssh_key_path     = var.local_ssh_key_path
+  rsa_bits               = var.rsa_bits
+  ssh_key_name           = var.ssh_key_name
+  ssh_public_key_file    = var.ssh_public_key_file
 }
 
 #--------------------------------------------------------------
@@ -83,9 +87,9 @@ resource "digitalocean_droplet" "igw" {
   ipv6               = var.igw_droplet_ipv6
   vpc_uuid           = digitalocean_vpc.this[0].id
   private_networking = true
-  ssh_keys           = [module.ssh_key.key_fingerprint]
+  ssh_keys           = compact(setunion(var.igw_droplet_ssh_keys, [module.ssh_key.key_fingerprint]))
   resize_disk        = var.igw_droplet_resize_disk
-  tags               = [for k, v in module.igw_label.tags : v if k != "Name"]
+  tags               = compact(setunion(var.igw_droplet_tags, [for k, v in module.igw_label.tags : v if k != "Name"]))
   user_data          = var.igw_droplet_user_data != null ? var.igw_droplet_user_data : local.igw_droplet_user_data
   volume_ids         = var.igw_droplet_volume_ids
 }
@@ -103,7 +107,7 @@ resource "digitalocean_volume" "igw" {
   snapshot_id              = var.igw_volume_snapshot_id
   initial_filesystem_type  = var.igw_volume_initial_filesystem_type
   initial_filesystem_label = var.igw_volume_initial_filesystem_label
-  tags                     = [for k, v in module.igw_label.tags : v if k != "Name"]
+  tags                     = compact(setunion(var.igw_volume_tags, [for k, v in module.igw_label.tags : v if k != "Name"]))
 }
 
 resource "digitalocean_volume_attachment" "igw" {
@@ -129,17 +133,17 @@ resource "digitalocean_floating_ip_assignment" "igw" {
 resource "digitalocean_firewall" "igw" {
   count       = module.igw_label.enabled ? 1 : 0
   name        = var.igw_firewall_name != null ? var.igw_firewall_name : join(module.igw_label.delimiter, compact(concat(["firewall"], module.igw_label.attributes)))
-  droplet_ids = digitalocean_droplet.igw.*.id
-  tags        = [for k, v in module.igw_label.tags : v if k != "Name"]
+  droplet_ids = digitalocean_droplet.igw[*].id
+  tags        = compact(setunion(var.igw_volume_tags, [for k, v in module.igw_label.tags : v if k != "Name"]))
   dynamic "inbound_rule" {
     for_each = var.igw_firewall_inbound_rules
     content {
       protocol                  = lookup(inbound_rule.value, "protocol", null)
       port_range                = lookup(inbound_rule.value, "port_range", null)
-      source_addresses          = compact([for source in split(",", lookup(inbound_rule.value, "source_addresses", "")) : trimspace(source)])
-      source_droplet_ids        = compact([for source in split(",", lookup(inbound_rule.value, "source_droplet_ids", "")) : trimspace(source)])
-      source_tags               = compact([for source in split(",", lookup(inbound_rule.value, "source_tags", "")) : trimspace(source)])
-      source_load_balancer_uids = compact([for source in split(",", lookup(inbound_rule.value, "source_load_balancer_uids", "")) : trimspace(source)])
+      source_addresses          = lookup(inbound_rule.value, "source_addresses", null) != null ? split(",", lookup(inbound_rule.value, "source_addresses")) : null
+      source_droplet_ids        = lookup(inbound_rule.value, "source_droplet_ids", null) != null ? split(",", lookup(inbound_rule.value, "source_droplet_ids")) : null
+      source_tags               = lookup(inbound_rule.value, "source_tags", null) != null ? split(",", lookup(inbound_rule.value, "source_tags")) : null
+      source_load_balancer_uids = lookup(inbound_rule.value, "source_load_balancer_uids", null) != null ? split(",", lookup(inbound_rule.value, "source_load_balancer_uids")) : null
     }
   }
   dynamic "outbound_rule" {
@@ -147,10 +151,10 @@ resource "digitalocean_firewall" "igw" {
     content {
       protocol                       = lookup(outbound_rule.value, "protocol", null)
       port_range                     = lookup(outbound_rule.value, "port_range", null)
-      destination_addresses          = compact([for destination in split(",", lookup(outbound_rule.value, "destination_addresses", "")) : trimspace(destination)])
-      destination_droplet_ids        = compact([for destination in split(",", lookup(outbound_rule.value, "destination_droplet_ids", "")) : trimspace(destination)])
-      destination_tags               = compact([for destination in split(",", lookup(outbound_rule.value, "destination_tags", "")) : trimspace(destination)])
-      destination_load_balancer_uids = compact([for destination in split(",", lookup(outbound_rule.value, "destination_load_balancer_uids", "")) : trimspace(destination)])
+      destination_addresses          = lookup(outbound_rule.value, "destination_addresses", null) != null ? split(",", lookup(outbound_rule.value, "destination_addresses")) : null
+      destination_droplet_ids        = lookup(outbound_rule.value, "destination_droplet_ids", null) != null ? split(",", lookup(outbound_rule.value, "destination_droplet_ids")) : null
+      destination_tags               = lookup(outbound_rule.value, "destination_tags", null) != null ? split(",", lookup(outbound_rule.value, "destination_tags")) : null
+      destination_load_balancer_uids = lookup(outbound_rule.value, "destination_load_balancer_uids", null) != null ? split(",", lookup(outbound_rule.value, "destinattion_load_balancer_uids")) : null
     }
   }
 }
@@ -177,10 +181,10 @@ resource "digitalocean_droplet" "private" {
   ipv6               = var.private_droplet_ipv6
   vpc_uuid           = digitalocean_vpc.this[0].id
   private_networking = true
-  ssh_keys           = [module.ssh_key.key_fingerprint]
+  ssh_keys           = compact(setunion(var.private_droplet_ssh_keys, [module.ssh_key.key_fingerprint]))
   resize_disk        = var.private_droplet_resize_disk
-  tags               = [for k, v in module.private_label.tags : v if k != "Name"]
-  user_data          = var.igw_droplet_user_data != null ? var.igw_droplet_user_data : local.private_droplet_user_data
+  tags               = compact(setunion(var.private_droplet_tags, [for k, v in module.private_label.tags : v if k != "Name"]))
+  user_data          = var.private_droplet_user_data != null ? var.private_droplet_user_data : local.private_droplet_user_data
   volume_ids         = var.private_droplet_volume_ids
 }
 
@@ -197,7 +201,7 @@ resource "digitalocean_volume" "private" {
   snapshot_id              = var.private_volume_snapshot_id
   initial_filesystem_type  = var.private_volume_initial_filesystem_type
   initial_filesystem_label = var.private_volume_initial_filesystem_label
-  tags                     = [for k, v in module.private_label.tags : v if k != "Name"]
+  tags                     = compact(setunion(var.private_volume_tags, [for k, v in module.private_label.tags : v if k != "Name"]))
 }
 
 resource "digitalocean_volume_attachment" "private" {
@@ -213,17 +217,17 @@ resource "digitalocean_volume_attachment" "private" {
 resource "digitalocean_firewall" "private" {
   count       = module.private_label.enabled ? 1 : 0
   name        = var.private_firewall_name != null ? var.private_firewall_name : join(module.private_label.delimiter, compact(concat(["firewall"], module.private_label.attributes)))
-  droplet_ids = digitalocean_droplet.private.*.id
-  tags        = [for k, v in module.private_label.tags : v if k != "Name"]
+  droplet_ids = digitalocean_droplet.private[*].id
+  tags        = compact(setunion(var.private_firewall_tags, [for k, v in module.private_label.tags : v if k != "Name"]))
   dynamic "inbound_rule" {
     for_each = var.private_firewall_inbound_rules
     content {
       protocol                  = lookup(inbound_rule.value, "protocol", null)
       port_range                = lookup(inbound_rule.value, "port_range", null)
-      source_addresses          = compact([for source in split(",", lookup(inbound_rule.value, "source_addresses", "")) : trimspace(source)])
-      source_droplet_ids        = compact([for source in split(",", lookup(inbound_rule.value, "source_droplet_ids", "")) : trimspace(source)])
-      source_tags               = compact([for source in split(",", lookup(inbound_rule.value, "source_tags", "")) : trimspace(source)])
-      source_load_balancer_uids = compact([for source in split(",", lookup(inbound_rule.value, "source_load_balancer_uids", "")) : trimspace(source)])
+      source_addresses          = lookup(inbound_rule.value, "source_addresses", null) != null ? split(",", lookup(inbound_rule.value, "source_addresses")) : null
+      source_droplet_ids        = lookup(inbound_rule.value, "source_droplet_ids", null) != null ? split(",", lookup(inbound_rule.value, "source_droplet_ids")) : null
+      source_tags               = lookup(inbound_rule.value, "source_tags", null) != null ? split(",", lookup(inbound_rule.value, "source_tags")) : null
+      source_load_balancer_uids = lookup(inbound_rule.value, "source_load_balancer_uids", null) != null ? split(",", lookup(inbound_rule.value, "source_load_balancer_uids")) : null
     }
   }
   dynamic "outbound_rule" {
@@ -231,10 +235,10 @@ resource "digitalocean_firewall" "private" {
     content {
       protocol                       = lookup(outbound_rule.value, "protocol", null)
       port_range                     = lookup(outbound_rule.value, "port_range", null)
-      destination_addresses          = compact([for destination in split(",", lookup(outbound_rule.value, "destination_addresses", "")) : trimspace(destination)])
-      destination_droplet_ids        = compact([for destination in split(",", lookup(outbound_rule.value, "destination_droplet_ids", "")) : trimspace(destination)])
-      destination_tags               = compact([for destination in split(",", lookup(outbound_rule.value, "destination_tags", "")) : trimspace(destination)])
-      destination_load_balancer_uids = compact([for destination in split(",", lookup(outbound_rule.value, "destination_load_balancer_uids", "")) : trimspace(destination)])
+      destination_addresses          = lookup(outbound_rule.value, "destination_addresses", null) != null ? split(",", lookup(outbound_rule.value, "destination_addresses")) : null
+      destination_droplet_ids        = lookup(outbound_rule.value, "destination_droplet_ids", null) != null ? split(",", lookup(outbound_rule.value, "destination_droplet_ids")) : null
+      destination_tags               = lookup(outbound_rule.value, "destination_tags", null) != null ? split(",", lookup(outbound_rule.value, "destination_tags")) : null
+      destination_load_balancer_uids = lookup(outbound_rule.value, "destination_load_balancer_uids", null) != null ? split(",", lookup(outbound_rule.value, "destinattion_load_balancer_uids")) : null
     }
   }
 }

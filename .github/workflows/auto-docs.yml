@@ -1,0 +1,43 @@
+---
+name: auto-docs
+
+on:
+  workflow_dispatch:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the pull request branch
+      #  "An action in a workflow run can’t trigger a new workflow run. For example, if an action pushes code using
+      #   the repository’s GITHUB_TOKEN, a new workflow will not run even when the repository contains
+      #   a workflow configured to run when push events occur."
+      # However, using a personal access token will cause events to be triggered.
+      # We need that to ensure a status gets posted after the auto-format commit.
+      # We also want to trigger tests if the auto-format made no changes.
+      - name: checkout
+        uses: actions/checkout@v3
+        if: github.event.pull_request.state == 'open'
+        with:
+          token: ${{ secrets.PUBLIC_REPO_ACCESS_TOKEN }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          # Check out the PR commit, not the merge commit
+          # Use `ref` instead of `sha` to enable pushing back to `ref`
+          ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: readme
+        uses: terraform-docs/gh-actions@v1
+        with:
+          args: "--lockfile=false"
+          git-commit-message: "docs(readme): automated action"
+          git-push-user-email: "82293428+hansohnbot@users.noreply.github.com"
+          git-push-user-name: "hansohnbot"
+          git-push: "true"
+          output-file: README.md
+          output-format: markdown table
+          output-method: inject
+          working-dir: .

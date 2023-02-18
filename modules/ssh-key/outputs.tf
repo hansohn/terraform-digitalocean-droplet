@@ -34,6 +34,6 @@ output "public_key_local_filename" {
 }
 
 output "private_key_local_filename" {
-  value       = element(concat(local_file.private_key[*].filename, [""]), 0)
+  value       = element(concat(local_sensitive_file.private_key[*].filename, [""]), 0)
   description = "Private Key local filename"
 }

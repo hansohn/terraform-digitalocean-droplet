@@ -77,21 +77,20 @@ locals {
 }
 
 resource "digitalocean_droplet" "igw" {
-  count              = module.igw_label.enabled ? 1 : 0
-  image              = var.igw_droplet_image
-  name               = var.igw_droplet_name != null ? var.igw_droplet_name : module.igw_label.id
-  region             = digitalocean_vpc.this[0].region
-  size               = var.igw_droplet_size
-  backups            = var.igw_droplet_backups
-  monitoring         = var.igw_droplet_monitoring
-  ipv6               = var.igw_droplet_ipv6
-  vpc_uuid           = digitalocean_vpc.this[0].id
-  private_networking = true
-  ssh_keys           = compact(setunion(var.igw_droplet_ssh_keys, [module.ssh_key.key_fingerprint]))
-  resize_disk        = var.igw_droplet_resize_disk
-  tags               = compact(setunion(var.igw_droplet_tags, [for k, v in module.igw_label.tags : v if k != "Name"]))
-  user_data          = var.igw_droplet_user_data != null ? var.igw_droplet_user_data : local.igw_droplet_user_data
-  volume_ids         = var.igw_droplet_volume_ids
+  count       = module.igw_label.enabled ? 1 : 0
+  image       = var.igw_droplet_image
+  name        = coalesce(var.igw_droplet_name, module.igw_label.id)
+  region      = digitalocean_vpc.this[0].region
+  size        = var.igw_droplet_size
+  backups     = var.igw_droplet_backups
+  monitoring  = var.igw_droplet_monitoring
+  ipv6        = var.igw_droplet_ipv6
+  vpc_uuid    = digitalocean_vpc.this[0].id
+  ssh_keys    = compact(setunion(var.igw_droplet_ssh_keys, [module.ssh_key.key_fingerprint]))
+  resize_disk = var.igw_droplet_resize_disk
+  tags        = compact(setunion(var.igw_droplet_tags, [for k, v in module.igw_label.tags : v if k != "Name"]))
+  user_data   = var.igw_droplet_user_data != null ? var.igw_droplet_user_data : local.igw_droplet_user_data
+  volume_ids  = var.igw_droplet_volume_ids
 }
 
 #--------------------------------------------------------------
@@ -132,9 +131,9 @@ resource "digitalocean_floating_ip_assignment" "igw" {
 
 resource "digitalocean_firewall" "igw" {
   count       = module.igw_label.enabled ? 1 : 0
-  name        = var.igw_firewall_name != null ? var.igw_firewall_name : join(module.igw_label.delimiter, compact(concat(["firewall"], module.igw_label.attributes)))
+  name        = coalesce(var.igw_firewall_name, module.igw_label.id)
   droplet_ids = digitalocean_droplet.igw[*].id
-  tags        = compact(setunion(var.igw_volume_tags, [for k, v in module.igw_label.tags : v if k != "Name"]))
+  tags        = var.igw_firewall_tags
   dynamic "inbound_rule" {
     for_each = var.igw_firewall_inbound_rules
     content {
@@ -171,21 +170,20 @@ locals {
 }
 
 resource "digitalocean_droplet" "private" {
-  count              = module.private_label.enabled ? var.private_droplet_count : 0
-  image              = var.private_droplet_image
-  name               = var.private_droplet_name != null ? var.private_droplet_name : module.private_label.id
-  region             = digitalocean_vpc.this[0].region
-  size               = var.private_droplet_size
-  backups            = var.private_droplet_backups
-  monitoring         = var.private_droplet_monitoring
-  ipv6               = var.private_droplet_ipv6
-  vpc_uuid           = digitalocean_vpc.this[0].id
-  private_networking = true
-  ssh_keys           = compact(setunion(var.private_droplet_ssh_keys, [module.ssh_key.key_fingerprint]))
-  resize_disk        = var.private_droplet_resize_disk
-  tags               = compact(setunion(var.private_droplet_tags, [for k, v in module.private_label.tags : v if k != "Name"]))
-  user_data          = var.private_droplet_user_data != null ? var.private_droplet_user_data : local.private_droplet_user_data
-  volume_ids         = var.private_droplet_volume_ids
+  count       = module.private_label.enabled ? var.private_droplet_count : 0
+  image       = var.private_droplet_image
+  name        = coalesce(var.private_droplet_name, module.private_label.id)
+  region      = digitalocean_vpc.this[0].region
+  size        = var.private_droplet_size
+  backups     = var.private_droplet_backups
+  monitoring  = var.private_droplet_monitoring
+  ipv6        = var.private_droplet_ipv6
+  vpc_uuid    = digitalocean_vpc.this[0].id
+  ssh_keys    = compact(setunion(var.private_droplet_ssh_keys, [module.ssh_key.key_fingerprint]))
+  resize_disk = var.private_droplet_resize_disk
+  tags        = compact(setunion(var.private_droplet_tags, [for k, v in module.private_label.tags : v if k != "Name"]))
+  user_data   = var.private_droplet_user_data != null ? var.private_droplet_user_data : local.private_droplet_user_data
+  volume_ids  = var.private_droplet_volume_ids
 }
 
 #--------------------------------------------------------------
@@ -216,9 +214,9 @@ resource "digitalocean_volume_attachment" "private" {
 
 resource "digitalocean_firewall" "private" {
   count       = module.private_label.enabled ? 1 : 0
-  name        = var.private_firewall_name != null ? var.private_firewall_name : join(module.private_label.delimiter, compact(concat(["firewall"], module.private_label.attributes)))
+  name        = coalesce(var.igw_firewall_name, module.private_label.id)
   droplet_ids = digitalocean_droplet.private[*].id
-  tags        = compact(setunion(var.private_firewall_tags, [for k, v in module.private_label.tags : v if k != "Name"]))
+  tags        = var.private_firewall_tags
   dynamic "inbound_rule" {
     for_each = var.private_firewall_inbound_rules
     content {

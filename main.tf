@@ -12,7 +12,7 @@ module "igw_label" {
 
 module "private_label" {
   source     = "cloudposse/label/null"
-  version    = "0.24.1" # requires Terraform >= 0.13.0
+  version    = "0.25.0" # requires Terraform >= 0.13.0
   attributes = compact(concat(module.this.attributes, ["private"]))
   context    = module.this.context
   enabled    = module.this.enabled

@@ -118,15 +118,9 @@ variable "igw_droplet_ipv6" {
   description = "(Optional) Boolean controlling if IPv6 is enabled. Defaults to false."
 }
 
-variable "igw_droplet_vpc_uuid" {
-  type        = string
-  default     = null
-  description = "(Optional) The ID of the VPC where the Droplet will be located."
-}
-
 variable "igw_droplet_ssh_keys" {
   type        = list(string)
-  default     = null
+  default     = []
   description = "(Optional) A list of SSH IDs or fingerprints to enable in the format [12345, 123456]."
 }
 
@@ -138,20 +132,20 @@ variable "igw_droplet_resize_disk" {
 
 variable "igw_droplet_tags" {
   type        = list(string)
-  default     = null
+  default     = []
   description = "(Optional) A list of the tags to be applied to this Droplet."
-}
-
-variable "igw_droplet_user_data" {
-  type        = string
-  default     = null
-  description = "(Optional) - A string of the desired User Data for the Droplet."
 }
 
 variable "igw_droplet_volume_ids" {
   type        = list(string)
   default     = null
   description = "(Optional) - A list of the IDs of each block storage volume to be attached to the Droplet."
+}
+
+variable "igw_droplet_cloudinit_parts" {
+  type        = list(any)
+  default     = []
+  description = "(Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document."
 }
 
 variable "igw_droplet_enable_bastion" {
@@ -242,7 +236,7 @@ variable "igw_volume_initial_filesystem_label" {
 
 variable "igw_volume_tags" {
   type        = list(string)
-  default     = null
+  default     = []
   description = "(Optional) A list of the tags to be applied to this Volume."
 }
 
@@ -256,37 +250,51 @@ variable "igw_firewall_name" {
   description = "(Required) The Firewall name"
 }
 
+variable "igw_firewall_tags" {
+  type        = list(string)
+  default     = ["igw"]
+  description = "(Optional) - The names of the Tags assigned to the Firewall."
+}
+
 variable "igw_firewall_inbound_rules" {
-  type = list(any)
-  default = [
-    {
-      protocol         = "tcp"
-      port_range       = "22"
-      source_addresses = "0.0.0.0/0, ::/0"
-    }
-  ]
+  type    = list(any)
+  default = []
+  # default = [
+  #   {
+  #     protocol         = "tcp"
+  #     port_range       = "22"
+  #     source_addresses = "0.0.0.0/0,::/0"
+  #   }
+  # ]
   description = "(Optional) The inbound access rule block for the Firewall."
 }
 
 variable "igw_firewall_outbound_rules" {
-  type = list(any)
-  default = [
-    {
-      protocol              = "icmp"
-      destination_addresses = "0.0.0.0/0, ::/0"
-    },
-    {
-      protocol              = "tcp"
-      port_range            = "1-65535"
-      destination_addresses = "0.0.0.0/0, ::/0"
-    },
-    {
-      protocol              = "udp"
-      port_range            = "1-65535"
-      destination_addresses = "0.0.0.0/0, ::/0"
-    }
-  ]
+  type    = list(any)
+  default = []
+  # default = [
+  #   {
+  #     protocol              = "icmp"
+  #     destination_addresses = "0.0.0.0/0,::/0"
+  #   },
+  #   {
+  #     protocol              = "tcp"
+  #     port_range            = "1-65535"
+  #     destination_addresses = "0.0.0.0/0,::/0"
+  #   },
+  #   {
+  #     protocol              = "udp"
+  #     port_range            = "1-65535"
+  #     destination_addresses = "0.0.0.0/0,::/0"
+  #   }
+  # ]
   description = "(Optional) The outbound access rule block for the Firewall."
+}
+
+variable "igw_allow_myip_ssh" {
+  type        = bool
+  default     = false
+  description = "(Optional) Allow your external ip ssh inbound permissions to the internet gateway"
 }
 
 #--------------------------------------------------------------
@@ -335,15 +343,9 @@ variable "private_droplet_ipv6" {
   description = "(Optional) Boolean controlling if IPv6 is enabled. Defaults to false."
 }
 
-variable "private_droplet_vpc_uuid" {
-  type        = string
-  default     = null
-  description = "(Optional) The ID of the VPC where the Droplet will be located."
-}
-
 variable "private_droplet_ssh_keys" {
   type        = list(string)
-  default     = null
+  default     = []
   description = "(Optional) A list of SSH IDs or fingerprints to enable in the format [12345, 123456]."
 }
 
@@ -355,20 +357,20 @@ variable "private_droplet_resize_disk" {
 
 variable "private_droplet_tags" {
   type        = list(string)
-  default     = null
+  default     = []
   description = "(Optional) A list of the tags to be applied to this Droplet."
-}
-
-variable "private_droplet_user_data" {
-  type        = string
-  default     = null
-  description = "(Optional) - A string of the desired User Data for the Droplet."
 }
 
 variable "private_droplet_volume_ids" {
   type        = list(string)
   default     = null
   description = "(Optional) - A list of the IDs of each block storage volume to be attached to the Droplet."
+}
+
+variable "private_droplet_cloudinit_parts" {
+  type        = list(any)
+  default     = []
+  description = "(Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document."
 }
 
 #--------------------------------------------------------------
@@ -419,7 +421,7 @@ variable "private_volume_initial_filesystem_label" {
 
 variable "private_volume_tags" {
   type        = list(string)
-  default     = null
+  default     = []
   description = "(Optional) A list of the tags to be applied to this Volume."
 }
 
@@ -431,6 +433,12 @@ variable "private_firewall_name" {
   type        = string
   default     = null
   description = "(Required) The Firewall name"
+}
+
+variable "private_firewall_tags" {
+  type        = list(string)
+  default     = ["private"]
+  description = "(Optional) - The names of the Tags assigned to the Firewall."
 }
 
 variable "private_firewall_inbound_rules" {

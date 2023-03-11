@@ -25,6 +25,24 @@
 
 Welcome to the terraform-digitalocean-droplet repo!
 
+
+### Makefile
+
+I've included the following make targets for convenience:
+
+```
+Available targets:
+
+  clean                               Clean everything
+  clean/docker                        Clean docker build images
+  clean/terraform                     Clean terraform generated files/directories
+  docker                              Docker lint, build and run image
+  docker/run                          Docker run image
+  help                                Help screen
+  help/all                            Display help for all targets
+  help/short                          This help short screen
+```
+
 ## :octocat: Examples
 
 Please see the sample set of examples below for a better understanding of implementation

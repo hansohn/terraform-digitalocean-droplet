@@ -247,13 +247,17 @@ Please see the sample set of examples below for a better understanding of implem
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0.0 |
-| <a name="requirement_digitalocean"></a> [digitalocean](#requirement\_digitalocean) | ~> 2.0 |
+| <a name="requirement_cloudinit"></a> [cloudinit](#requirement\_cloudinit) | >= 2.0.0 |
+| <a name="requirement_digitalocean"></a> [digitalocean](#requirement\_digitalocean) | >= 2.0.0 |
+| <a name="requirement_http"></a> [http](#requirement\_http) | >= 3.0.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_digitalocean"></a> [digitalocean](#provider\_digitalocean) | ~> 2.0 |
+| <a name="provider_cloudinit"></a> [cloudinit](#provider\_cloudinit) | >= 2.0.0 |
+| <a name="provider_digitalocean"></a> [digitalocean](#provider\_digitalocean) | >= 2.0.0 |
+| <a name="provider_http"></a> [http](#provider\_http) | >= 3.0.0 |
 
 ## Modules
 
@@ -279,6 +283,9 @@ Please see the sample set of examples below for a better understanding of implem
 | [digitalocean_volume_attachment.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/volume_attachment) | resource |
 | [digitalocean_volume_attachment.private](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/volume_attachment) | resource |
 | [digitalocean_vpc.this](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/vpc) | resource |
+| [cloudinit_config.igw](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs/data-sources/config) | data source |
+| [cloudinit_config.private](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs/data-sources/config) | data source |
+| [http_http.myip](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
 
 ## Inputs
 
@@ -295,7 +302,9 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_environment"></a> [environment](#input\_environment) | ID element. Usually used for region e.g. 'uw2', 'us-west-2', OR role 'prod', 'staging', 'dev', 'UAT' | `string` | `null` | no |
 | <a name="input_generate_ssh_key"></a> [generate\_ssh\_key](#input\_generate\_ssh\_key) | If set to `true`, new SSH key pair will be created and `ssh_public_key_file` will be ignored. Conflicts with ssh\_public\_key\_file | `bool` | `false` | no |
 | <a name="input_id_length_limit"></a> [id\_length\_limit](#input\_id\_length\_limit) | Limit `id` to this many characters (minimum 6).<br>Set to `0` for unlimited length.<br>Set to `null` for keep the existing setting, which defaults to `0`.<br>Does not affect `id_full`. | `number` | `null` | no |
+| <a name="input_igw_allow_myip_ssh"></a> [igw\_allow\_myip\_ssh](#input\_igw\_allow\_myip\_ssh) | (Optional) Allow your external ip ssh inbound permissions to the internet gateway | `bool` | `false` | no |
 | <a name="input_igw_droplet_backups"></a> [igw\_droplet\_backups](#input\_igw\_droplet\_backups) | (Optional) Boolean controlling if backups are made. Defaults to false. | `bool` | `null` | no |
+| <a name="input_igw_droplet_cloudinit_parts"></a> [igw\_droplet\_cloudinit\_parts](#input\_igw\_droplet\_cloudinit\_parts) | (Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document. | `list(any)` | `[]` | no |
 | <a name="input_igw_droplet_enable_bastion"></a> [igw\_droplet\_enable\_bastion](#input\_igw\_droplet\_enable\_bastion) | (Optional) Boolean controlling whether to enable bastion ssh feature on droplet | `bool` | `false` | no |
 | <a name="input_igw_droplet_enable_notifications"></a> [igw\_droplet\_enable\_notifications](#input\_igw\_droplet\_enable\_notifications) | (Optional) Boolean controlling whether to enable slack notifications. Currently this feature only applies to bastion fail2ban sshd jail notifications. | `bool` | `false` | no |
 | <a name="input_igw_droplet_image"></a> [igw\_droplet\_image](#input\_igw\_droplet\_image) | (Required) The Droplet image ID or slug. | `string` | `null` | no |
@@ -329,6 +338,7 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_name"></a> [name](#input\_name) | ID element. Usually the component or solution name, e.g. 'app' or 'jenkins'.<br>This is the only ID element not also included as a `tag`.<br>The "name" tag is set to the full `id` string. There is no tag with the value of the `name` input. | `string` | `null` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | ID element. Usually an abbreviation of your organization name, e.g. 'eg' or 'cp', to help ensure generated IDs are globally unique | `string` | `null` | no |
 | <a name="input_private_droplet_backups"></a> [private\_droplet\_backups](#input\_private\_droplet\_backups) | (Optional) Boolean controlling if backups are made. Defaults to false. | `bool` | `null` | no |
+| <a name="input_private_droplet_cloudinit_parts"></a> [private\_droplet\_cloudinit\_parts](#input\_private\_droplet\_cloudinit\_parts) | (Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document. | `list(any)` | `[]` | no |
 | <a name="input_private_droplet_count"></a> [private\_droplet\_count](#input\_private\_droplet\_count) | (Optional) Number of private droplet instances to create. Defauts to 1. | `number` | `1` | no |
 | <a name="input_private_droplet_image"></a> [private\_droplet\_image](#input\_private\_droplet\_image) | (Required) The Droplet image ID or slug. | `string` | `null` | no |
 | <a name="input_private_droplet_ipv6"></a> [private\_droplet\_ipv6](#input\_private\_droplet\_ipv6) | (Optional) Boolean controlling if IPv6 is enabled. Defaults to false. | `bool` | `null` | no |

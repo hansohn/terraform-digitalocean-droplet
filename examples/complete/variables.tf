@@ -164,6 +164,12 @@ variable "igw_droplet_volume_ids" {
   description = "(Optional) - A list of the IDs of each block storage volume to be attached to the Droplet."
 }
 
+variable "igw_droplet_cloudinit_parts" {
+  type        = list(any)
+  default     = []
+  description = "(Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document."
+}
+
 variable "igw_droplet_enable_bastion" {
   type        = bool
   default     = false
@@ -299,6 +305,12 @@ variable "igw_firewall_outbound_rules" {
   description = "(Optional) The outbound access rule block for the Firewall."
 }
 
+variable "igw_allow_myip_ssh" {
+  type        = bool
+  default     = false
+  description = "(Optional) Allow your external ip ssh inbound permissions to the internet gateway"
+}
+
 #--------------------------------------------------------------
 # Private Droplet
 #--------------------------------------------------------------
@@ -379,6 +391,12 @@ variable "private_droplet_volume_ids" {
   type        = list(string)
   default     = null
   description = "(Optional) - A list of the IDs of each block storage volume to be attached to the Droplet."
+}
+
+variable "private_droplet_cloudinit_parts" {
+  type        = list(any)
+  default     = []
+  description = "(Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document."
 }
 
 #--------------------------------------------------------------

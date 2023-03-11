@@ -25,6 +25,7 @@ module "igw" {
   igw_droplet_enable_notifications = var.igw_droplet_enable_notifications
 
   # igw_firewall
+  igw_allow_myip_ssh          = var.igw_allow_myip_ssh
   igw_firewall_inbound_rules  = var.igw_firewall_inbound_rules
   igw_firewall_outbound_rules = var.igw_firewall_outbound_rules
 

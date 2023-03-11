@@ -136,16 +136,16 @@ variable "igw_droplet_tags" {
   description = "(Optional) A list of the tags to be applied to this Droplet."
 }
 
-variable "igw_droplet_user_data" {
-  type        = string
-  default     = null
-  description = "(Optional) - A string of the desired User Data for the Droplet."
-}
-
 variable "igw_droplet_volume_ids" {
   type        = list(string)
   default     = null
   description = "(Optional) - A list of the IDs of each block storage volume to be attached to the Droplet."
+}
+
+variable "igw_droplet_cloudinit_parts" {
+  type        = list(any)
+  default     = []
+  description = "(Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document."
 }
 
 variable "igw_droplet_enable_bastion" {
@@ -291,6 +291,12 @@ variable "igw_firewall_outbound_rules" {
   description = "(Optional) The outbound access rule block for the Firewall."
 }
 
+variable "igw_allow_myip_ssh" {
+  type        = bool
+  default     = false
+  description = "(Optional) Allow your external ip ssh inbound permissions to the internet gateway"
+}
+
 #--------------------------------------------------------------
 # Private Droplet
 #--------------------------------------------------------------
@@ -355,16 +361,16 @@ variable "private_droplet_tags" {
   description = "(Optional) A list of the tags to be applied to this Droplet."
 }
 
-variable "private_droplet_user_data" {
-  type        = string
-  default     = null
-  description = "(Optional) - A string of the desired User Data for the Droplet."
-}
-
 variable "private_droplet_volume_ids" {
   type        = list(string)
   default     = null
   description = "(Optional) - A list of the IDs of each block storage volume to be attached to the Droplet."
+}
+
+variable "private_droplet_cloudinit_parts" {
+  type        = list(any)
+  default     = []
+  description = "(Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document."
 }
 
 #--------------------------------------------------------------

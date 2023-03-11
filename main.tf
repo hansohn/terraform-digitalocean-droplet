@@ -185,8 +185,8 @@ resource "digitalocean_droplet" "igw" {
   ssh_keys    = compact(setunion(var.igw_droplet_ssh_keys, [module.ssh_key.key_fingerprint]))
   resize_disk = var.igw_droplet_resize_disk
   tags        = compact(setunion(var.igw_droplet_tags, [for k, v in module.igw_label.tags : v if k != "Name"]))
-  user_data  = data.cloudinit_config.igw.rendered
-  volume_ids = var.igw_droplet_volume_ids
+  user_data   = data.cloudinit_config.igw.rendered
+  volume_ids  = var.igw_droplet_volume_ids
 }
 
 #--------------------------------------------------------------
@@ -341,7 +341,7 @@ resource "digitalocean_droplet" "private" {
   resize_disk = var.private_droplet_resize_disk
   tags        = compact(setunion(var.private_droplet_tags, [for k, v in module.private_label.tags : v if k != "Name"]))
   user_data   = data.cloudinit_config.private.rendered
-  volume_ids = var.private_droplet_volume_ids
+  volume_ids  = var.private_droplet_volume_ids
 }
 
 #--------------------------------------------------------------

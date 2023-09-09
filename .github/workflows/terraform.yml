@@ -59,7 +59,7 @@ jobs:
       - terraform_modules
       - terraform_versions
     runs-on: ubuntu-latest
-    container: hansohn/terraform:latest
+    container: hansohn/terraform-digitalocean:latest
     strategy:
       fail-fast: false
       matrix:
@@ -83,7 +83,7 @@ jobs:
       - terraform_modules
       - terraform_versions
     runs-on: ubuntu-latest
-    container: hansohn/terraform:latest
+    container: hansohn/terraform-digitalocean:latest
     strategy:
       fail-fast: false
       matrix:

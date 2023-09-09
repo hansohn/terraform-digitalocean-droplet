@@ -7,6 +7,14 @@ module "igw_label" {
   version    = "0.25.0"
   attributes = compact(concat(module.this.attributes, ["igw"]))
   context    = module.this.context
+  enabled    = module.this.enabled && var.enable_internet_gateway
+}
+
+module "public_label" {
+  source     = "cloudposse/label/null"
+  version    = "0.25.0"
+  attributes = compact(concat(module.this.attributes, ["public"]))
+  context    = module.this.context
   enabled    = module.this.enabled
 }
 
@@ -52,7 +60,7 @@ resource "digitalocean_vpc" "this" {
 # Floating IP
 #--------------------------------------------------------------
 
-resource "digitalocean_floating_ip" "this" {
+resource "digitalocean_floating_ip" "igw" {
   count  = module.igw_label.enabled ? 1 : 0
   region = digitalocean_vpc.this[0].region
 }
@@ -217,36 +225,110 @@ resource "digitalocean_volume_attachment" "igw" {
 
 resource "digitalocean_floating_ip_assignment" "igw" {
   count      = module.igw_label.enabled ? 1 : 0
-  ip_address = digitalocean_floating_ip.this[0].ip_address
+  ip_address = digitalocean_floating_ip.igw[0].ip_address
   droplet_id = digitalocean_droplet.igw[0].id
 }
 
 #--------------------------------------------------------------
-# Internet Gateway Firewall
+# Public Load Balancer
+#--------------------------------------------------------------
+
+resource "digitalocean_loadbalancer" "public" {
+  count     = var.private_droplet_count > 1 ? 1 : 0
+  name      = coalesce(var.public_lb_name, module.public_label.id)
+  region    = digitalocean_vpc.this[0].region
+  size      = var.public_lb_size
+  size_unit = var.public_lb_size_unit
+  algorithm = var.public_lb_algorithm
+  dynamic "forwarding_rule" {
+    for_each = var.public_lb_forwarding_rule
+    content {
+      entry_protocol   = lookup(forwarding_rule.value, "entry_protocol")
+      entry_port       = lookup(forwarding_rule.value, "entry_port")
+      target_protocol  = lookup(forwarding_rule.value, "target_protocol")
+      target_port      = lookup(forwarding_rule.value, "target_port")
+      certificate_name = lookup(forwarding_rule.value, "certificate_name", null)
+      certificate_id   = lookup(forwarding_rule.value, "certificate_id", null)
+      tls_passthrough  = lookup(forwarding_rule.value, "tls_passthrough", null)
+    }
+  }
+  dynamic "healthcheck" {
+    for_each = var.public_lb_healthcheck
+    content {
+      protocol                 = lookup(healthcheck.value, "protocol")
+      port                     = lookup(healthcheck.value, "port", null)
+      path                     = lookup(healthcheck.value, "path", null)
+      check_interval_seconds   = lookup(healthcheck.value, "check_interval_seconds", null)
+      response_timeout_seconds = lookup(healthcheck.value, "response_timeout_seconds", null)
+      unhealthy_threshold      = lookup(healthcheck.value, "unhealthy_threshold", null)
+      healthy_threshold        = lookup(healthcheck.value, "healthy_threshold", null)
+    }
+  }
+  dynamic "sticky_sessions" {
+    for_each = var.public_lb_sticky_sessions
+    content {
+      type               = lookup(sticky_sessions.value, "type")
+      cookie_name        = lookup(sticky_sessions.value, "cookie_name", null)
+      cookie_ttl_seconds = lookup(sticky_sessions.value, "cookie_ttl_seconds", null)
+    }
+  }
+  redirect_http_to_https           = var.public_lb_redirect_http_to_https
+  enable_proxy_protocol            = var.public_lb_enable_proxy_protocol
+  enable_backend_keepalive         = var.public_lb_enable_backend_keepalive
+  http_idle_timeout_seconds        = var.public_lb_http_idle_timeout_seconds
+  disable_lets_encrypt_dns_records = var.public_lb_disable_lets_encrypt_dns_records
+  project_id                       = var.public_lb_project_id
+  vpc_uuid                         = digitalocean_vpc.this[0].id
+  droplet_ids                      = var.public_lb_droplet_ids
+  droplet_tag                      = var.public_lb_droplet_tag
+  dynamic "firewall" {
+    for_each = var.public_lb_firewall
+    content {
+      deny  = lookup(firewall.value, "deny", null)
+      allow = lookup(firewall.value, "allow", null)
+    }
+  }
+}
+
+#--------------------------------------------------------------
+# Public Firewall
 #--------------------------------------------------------------
 
 data "http" "myip" {
-  count = var.igw_allow_myip_ssh ? 1 : 0
+  count = var.firewall_allow_myip_ssh || var.firewall_allow_myip_web ? 1 : 0
   url   = "https://ipinfo.io/ip/"
 }
 
 locals {
-  igw_firewall_inbound_myip_ssh = var.igw_allow_myip_ssh ? [
+  public_firewall_inbound_myip_ssh = module.igw_label.enabled && var.firewall_allow_myip_ssh ? [
     tomap({
       protocol         = "tcp"
       port_range       = "22"
       source_addresses = "${chomp(data.http.myip[0].body)}/32"
     })
   ] : []
+  public_firewall_inbound_myip_web = var.private_droplet_count > 1 && var.firewall_allow_myip_web ? [
+    tomap({
+      protocol         = "tcp"
+      port_range       = "80"
+      source_addresses = "${chomp(data.http.myip[0].body)}/32"
+    }),
+    tomap({
+      protocol         = "tcp"
+      port_range       = "443"
+      source_addresses = "${chomp(data.http.myip[0].body)}/32"
+    }),
+  ] : []
+  public_firewall_inbound_rules = concat(local.public_firewall_inbound_myip_ssh, local.public_firewall_inbound_myip_web)
 }
 
-resource "digitalocean_firewall" "igw" {
-  count       = module.igw_label.enabled ? 1 : 0
-  name        = coalesce(var.igw_firewall_name, module.igw_label.id)
+resource "digitalocean_firewall" "public" {
+  count       = module.public_label.enabled ? 1 : 0
+  name        = coalesce(var.public_firewall_name, module.public_label.id)
   droplet_ids = digitalocean_droplet.igw[*].id
-  tags        = var.igw_firewall_tags
+  tags        = var.public_firewall_tags
   dynamic "inbound_rule" {
-    for_each = concat(local.igw_firewall_inbound_myip_ssh, var.igw_firewall_inbound_rules)
+    for_each = concat(local.public_firewall_inbound_rules, var.public_firewall_inbound_rules)
     content {
       protocol                  = lookup(inbound_rule.value, "protocol", null)
       port_range                = lookup(inbound_rule.value, "port_range", null)
@@ -257,7 +339,7 @@ resource "digitalocean_firewall" "igw" {
     }
   }
   dynamic "outbound_rule" {
-    for_each = var.igw_firewall_outbound_rules
+    for_each = var.public_firewall_outbound_rules
     content {
       protocol                       = lookup(outbound_rule.value, "protocol", null)
       port_range                     = lookup(outbound_rule.value, "port_range", null)
@@ -270,7 +352,7 @@ resource "digitalocean_firewall" "igw" {
 }
 
 #--------------------------------------------------------------
-# Private Gateway Cloud-Init
+# Private Droplet Cloud-Init
 #--------------------------------------------------------------
 
 data "cloudinit_config" "private" {
@@ -330,7 +412,7 @@ data "cloudinit_config" "private" {
 resource "digitalocean_droplet" "private" {
   count       = module.private_label.enabled ? var.private_droplet_count : 0
   image       = var.private_droplet_image
-  name        = coalesce(var.private_droplet_name, module.private_label.id)
+  name        = "${coalesce(var.private_droplet_name, module.private_label.id)}-${count.index}"
   region      = digitalocean_vpc.this[0].region
   size        = var.private_droplet_size
   backups     = var.private_droplet_backups
@@ -370,13 +452,40 @@ resource "digitalocean_volume_attachment" "private" {
 # Private Firewall
 #--------------------------------------------------------------
 
+locals {
+  private_firewall_inbound_lb_web = var.private_droplet_count == 1 && var.firewall_allow_myip_web ? [
+    tomap({
+      protocol         = "tcp"
+      port_range       = "80"
+      source_addresses = "${chomp(data.http.myip[0].body)}/32"
+    }),
+    tomap({
+      protocol         = "tcp"
+      port_range       = "443"
+      source_addresses = "${chomp(data.http.myip[0].body)}/32"
+    }),
+    ] : var.private_droplet_count > 1 ? [
+    tomap({
+      protocol         = "tcp"
+      port_range       = "80"
+      source_addresses = digitalocean_loadbalancer.public[0].id
+    }),
+    tomap({
+      protocol         = "tcp"
+      port_range       = "443"
+      source_addresses = digitalocean_loadbalancer.public[0].id
+    }),
+  ] : []
+  private_firewall_inbound_rules = local.private_firewall_inbound_lb_web
+}
+
 resource "digitalocean_firewall" "private" {
   count       = module.private_label.enabled ? 1 : 0
   name        = coalesce(var.private_firewall_name, module.private_label.id)
   droplet_ids = digitalocean_droplet.private[*].id
   tags        = var.private_firewall_tags
   dynamic "inbound_rule" {
-    for_each = var.private_firewall_inbound_rules
+    for_each = concat(local.private_firewall_inbound_rules, var.private_firewall_inbound_rules)
     content {
       protocol                  = lookup(inbound_rule.value, "protocol", null)
       port_range                = lookup(inbound_rule.value, "port_range", null)

@@ -14,7 +14,7 @@ include $(PROJECT_PATH)/Makefile.*
 # docker
 #-------------------------------------------------------------------------------
 
-DOCKER_IMAGE ?= hansohn/terraform
+DOCKER_IMAGE ?= hansohn/terraform-digitalocean
 DOCKER_TAG ?= latest
 ENTRYPOINT ?= bash
 
@@ -31,8 +31,8 @@ DOCKER_RUN_ARGS += --pull always
 
 ## Docker run image
 docker/run:
-	-@if docker stats --no-stream > /dev/null 2>&1; then \
-		echo "[INFO] Running '$(DOCKER_IMAGE)/$(DOCKER_TAG)' docker image"; \
+	-@if docker info > /dev/null 2>&1; then \
+		echo "[INFO] Running '$(DOCKER_IMAGE):$(DOCKER_TAG)' docker image"; \
 		docker run $(DOCKER_RUN_ARGS) "$(DOCKER_IMAGE):$(DOCKER_TAG)" "$(ENTRYPOINT)"; \
 	else \
 		echo "[ERROR] Docker 'run' failed. Docker daemon is not Running."; \
@@ -49,9 +49,9 @@ docker: docker/run
 
 ## Clean docker build images
 clean/docker:
-	-@if docker stats --no-stream > /dev/null 2>&1; then \
+	-@if docker info > /dev/null 2>&1; then \
 		if docker inspect --type=image "$(DOCKER_IMAGE):$(DOCKER_TAG)" > /dev/null 2>&1; then \
-			echo "[INFO] Removing docker image '$(DOCKER_IMAGE)/$(DOCKER_TAG)'"; \
+		echo "[INFO] Removing docker image '$(DOCKER_IMAGE):$(DOCKER_TAG)'"; \
 			docker rmi -f $$(docker inspect --format='{{ .Id }}' --type=image $(DOCKER_IMAGE):$(DOCKER_TAG)); \
 		fi; \
 	fi

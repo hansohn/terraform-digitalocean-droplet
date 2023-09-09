@@ -82,6 +82,12 @@ variable "vpc_ip_range" {
 # Internet Gateway Droplet
 #--------------------------------------------------------------
 
+variable "enable_internet_gateway" {
+  type        = bool
+  default     = true
+  description = "(Optional) Enable creation of Internet Gateway resources. Defaults to true."
+}
+
 variable "igw_droplet_image" {
   type        = string
   default     = null
@@ -241,22 +247,122 @@ variable "igw_volume_tags" {
 }
 
 #--------------------------------------------------------------
-# Internet Gateway Firewall
+# Public Load Balancer
 #--------------------------------------------------------------
 
-variable "igw_firewall_name" {
+variable "public_lb_name" {
+  type        = string
+  default     = null
+  description = "(Required) The Load Balancer name."
+}
+
+variable "public_lb_size" {
+  type        = string
+  default     = null
+  description = "(Optional) The size of the Load Balancer. It must be either lb-small, lb-medium, or lb-large. Defaults to lb-small. Only one of size or size_unit may be provided."
+}
+
+variable "public_lb_size_unit" {
+  type        = number
+  default     = null
+  description = "(Optional) The size of the Load Balancer. It must be in the range (1, 100). Defaults to 1. Only one of size or size_unit may be provided."
+}
+
+variable "public_lb_algorithm" {
+  type        = string
+  default     = null
+  description = "(Optional) The load balancing algorithm used to determine which backend Droplet will be selected by a client. It must be either round_robin or least_connections. The default value is round_robin."
+}
+
+variable "public_lb_forwarding_rule" {
+  type        = list(any)
+  default     = []
+  description = "(Required) A list of forwarding_rule to be assigned to the Load Balancer. The forwarding_rule block is documented below."
+}
+
+variable "public_lb_healthcheck" {
+  type        = list(any)
+  default     = []
+  description = "(Optional) A healthcheck block to be assigned to the Load Balancer. The healthcheck block is documented below. Only 1 healthcheck is allowed."
+}
+
+variable "public_lb_sticky_sessions" {
+  type        = list(any)
+  default     = []
+  description = "(Optional) A sticky_sessions block to be assigned to the Load Balancer. The sticky_sessions block is documented below. Only 1 sticky_sessions block is allowed."
+}
+
+variable "public_lb_redirect_http_to_https" {
+  type        = bool
+  default     = null
+  description = "(Optional) A boolean value indicating whether HTTP requests to the Load Balancer on port 80 will be redirected to HTTPS on port 443. Default value is false."
+}
+
+variable "public_lb_enable_proxy_protocol" {
+  type        = bool
+  default     = null
+  description = "(Optional) A boolean value indicating whether PROXY Protocol should be used to pass information from connecting client requests to the backend service. Default value is false."
+}
+
+variable "public_lb_enable_backend_keepalive" {
+  type        = bool
+  default     = null
+  description = "(Optional) A boolean value indicating whether HTTP keepalive connections are maintained to target Droplets. Default value is false."
+}
+
+variable "public_lb_http_idle_timeout_seconds" {
+  type        = number
+  default     = null
+  description = "(Optional) Specifies the idle timeout for HTTPS connections on the load balancer in seconds."
+}
+
+variable "public_lb_disable_lets_encrypt_dns_records" {
+  type        = bool
+  default     = null
+  description = "(Optional) A boolean value indicating whether to disable automatic DNS record creation for Let's Encrypt certificates that are added to the load balancer. Default value is false."
+}
+
+variable "public_lb_project_id" {
+  type        = string
+  default     = null
+  description = "(Optional) The ID of the project that the load balancer is associated with. If no ID is provided at creation, the load balancer associates with the user's default project."
+}
+
+variable "public_lb_droplet_ids" {
+  type        = list(string)
+  default     = null
+  description = "(Optional) - A list of the IDs of each droplet to be attached to the Load Balancer."
+}
+
+variable "public_lb_droplet_tag" {
+  type        = string
+  default     = null
+  description = "(Optional) - A list of the IDs of each droplet to be attached to the Load Balancer."
+}
+
+variable "public_lb_firewall" {
+  type        = list(any)
+  default     = []
+  description = "(Optional) - A block containing rules for allowing/denying traffic to the Load Balancer. The firewall block is documented below. Only 1 firewall is allowed."
+}
+
+#--------------------------------------------------------------
+# Public Firewall
+#--------------------------------------------------------------
+
+variable "public_firewall_name" {
   type        = string
   default     = null
   description = "(Required) The Firewall name"
 }
 
-variable "igw_firewall_tags" {
+variable "public_firewall_tags" {
   type        = list(string)
   default     = ["igw"]
   description = "(Optional) - The names of the Tags assigned to the Firewall."
 }
 
-variable "igw_firewall_inbound_rules" {
+variable "public_firewall_inbound_rules" {
   type    = list(any)
   default = []
   # default = [
@@ -269,7 +375,7 @@ variable "igw_firewall_inbound_rules" {
   description = "(Optional) The inbound access rule block for the Firewall."
 }
 
-variable "igw_firewall_outbound_rules" {
+variable "public_firewall_outbound_rules" {
   type    = list(any)
   default = []
   # default = [
@@ -291,10 +397,16 @@ variable "igw_firewall_outbound_rules" {
   description = "(Optional) The outbound access rule block for the Firewall."
 }
 
-variable "igw_allow_myip_ssh" {
+variable "firewall_allow_myip_ssh" {
   type        = bool
   default     = false
-  description = "(Optional) Allow your external ip ssh inbound permissions to the internet gateway"
+  description = "(Optional) Allow your external ip ssh inbound permissions to the internet gateway."
+}
+
+variable "firewall_allow_myip_web" {
+  type        = bool
+  default     = false
+  description = "(Optional) Allow your external ip port 80/443 inbound permissions to the private droplets."
 }
 
 #--------------------------------------------------------------

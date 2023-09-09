@@ -20,9 +20,18 @@ igw_droplet_monitoring           = true
 igw_droplet_enable_bastion       = true
 igw_droplet_enable_notifications = false
 
-# igw_firewall
-igw_allow_myip_ssh = true
-igw_firewall_inbound_rules = [
+# public_loadbalancer
+public_lb_forwarding_rule = [{
+  entry_port      = 443
+  entry_protocol  = "https"
+  target_port     = 80
+  target_protocol = "http"
+}]
+
+# public_firewall
+firewall_allow_myip_ssh = true
+firewall_allow_myip_web = true
+public_firewall_inbound_rules = [
   {
     protocol    = "icmp"
     source_tags = "private"
@@ -39,7 +48,7 @@ igw_firewall_inbound_rules = [
   }
 ]
 
-igw_firewall_outbound_rules = [
+public_firewall_outbound_rules = [
   {
     protocol              = "icmp"
     destination_addresses = "0.0.0.0/0,::/0"
@@ -57,6 +66,7 @@ igw_firewall_outbound_rules = [
 ]
 
 # private_droplet
+private_droplet_count      = 2
 private_droplet_image      = "ubuntu-22-04-x64"
 private_droplet_size       = "s-1vcpu-1gb"
 private_droplet_monitoring = true

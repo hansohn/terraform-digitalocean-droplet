@@ -200,51 +200,51 @@ output "igw_volume_initial_filesystem_label" {
 }
 
 #--------------------------------------------------------------
-# Internet Gateway Firewall
+# Public Gateway Firewall
 #--------------------------------------------------------------
 
-output "igw_firewall_id" {
-  value       = module.igw.igw_firewall_id
+output "public_firewall_id" {
+  value       = module.igw.public_firewall_id
   description = "A unique ID that can be used to identify and reference a Firewall."
 }
 
-output "igw_firewall_status" {
-  value       = module.igw.igw_firewall_status
+output "public_firewall_status" {
+  value       = module.igw.public_firewall_status
   description = "A status string indicating the current state of the Firewall. This can be 'waiting', 'succeeded', or 'failed'."
 }
 
-output "igw_firewall_created_at" {
-  value       = module.igw.igw_firewall_created_at
+output "public_firewall_created_at" {
+  value       = module.igw.public_firewall_created_at
   description = "A time value given in ISO8601 combined date and time format that represents when the Firewall was created."
 }
 
-output "igw_firewall_pending_changes" {
-  value       = module.igw.igw_firewall_pending_changes
+output "public_firewall_pending_changes" {
+  value       = module.igw.public_firewall_pending_changes
   description = "An list of object containing the fields, 'droplet_id', 'removing', and 'status'. It is provided to detail exactly which Droplets are having their security policies updated. When empty, all changes have been successfully applied."
 }
 
-output "igw_firewall_name" {
-  value       = module.igw.igw_firewall_name
+output "public_firewall_name" {
+  value       = module.igw.public_firewall_name
   description = "The name of the Firewall."
 }
 
-output "igw_firewall_droplet_ids" {
-  value       = module.igw.igw_firewall_droplet_ids
+output "public_firewall_droplet_ids" {
+  value       = module.igw.public_firewall_droplet_ids
   description = "The list of the IDs of the Droplets assigned to the Firewall."
 }
 
-output "igw_firewall_tags" {
-  value       = module.igw.igw_firewall_tags
+output "public_firewall_tags" {
+  value       = module.igw.public_firewall_tags
   description = "The names of the Tags assigned to the Firewall."
 }
 
-# output "igw_firewall_inbound_rules" {
-#   value = module.igw.igw_firewall_inbound_rules
+# output "public_firewall_inbound_rules" {
+#   value = module.igw.public_firewall_inbound_rules
 #   description = "The inbound access rule block for the Firewall."
 # }
 # 
-# output "igw_firewall_outbound_rules" {
-#   value = module.igw.igw_firewall_outbound_rules
+# output "public_firewall_outbound_rules" {
+#   value = module.igw.public_firewall_outbound_rules
 #   description = "The outbound access rule block for the Firewall."
 # }
 

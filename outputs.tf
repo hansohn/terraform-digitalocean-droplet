@@ -27,12 +27,12 @@ output "vpc_created_at" {
 #--------------------------------------------------------------
 
 output "floating_ip_address" {
-  value       = element(concat(digitalocean_floating_ip.this[*].ip_address, [""]), 0)
+  value       = element(concat(digitalocean_floating_ip.igw[*].ip_address, [""]), 0)
   description = "The IP Address of the resource"
 }
 
 output "floating_ip_urn" {
-  value       = element(concat(digitalocean_floating_ip.this[*].urn, [""]), 0)
+  value       = element(concat(digitalocean_floating_ip.igw[*].urn, [""]), 0)
   description = "The uniform resource name of the floating ip"
 }
 
@@ -203,48 +203,48 @@ output "igw_volume_initial_filesystem_label" {
 # Internet Gateway Firewall
 #--------------------------------------------------------------
 
-output "igw_firewall_id" {
-  value       = element(concat(digitalocean_firewall.igw[*].id, [""]), 0)
+output "public_firewall_id" {
+  value       = element(concat(digitalocean_firewall.public[*].id, [""]), 0)
   description = "A unique ID that can be used to identify and reference a Firewall."
 }
 
-output "igw_firewall_status" {
-  value       = element(concat(digitalocean_firewall.igw[*].status, [""]), 0)
+output "public_firewall_status" {
+  value       = element(concat(digitalocean_firewall.public[*].status, [""]), 0)
   description = "A status string indicating the current state of the Firewall. This can be 'waiting', 'succeeded', or 'failed'."
 }
 
-output "igw_firewall_created_at" {
-  value       = element(concat(digitalocean_firewall.igw[*].created_at, [""]), 0)
+output "public_firewall_created_at" {
+  value       = element(concat(digitalocean_firewall.public[*].created_at, [""]), 0)
   description = "A time value given in ISO8601 combined date and time format that represents when the Firewall was created."
 }
 
-output "igw_firewall_pending_changes" {
-  value       = element(concat(digitalocean_firewall.igw[*].pending_changes, [""]), 0)
+output "public_firewall_pending_changes" {
+  value       = element(concat(digitalocean_firewall.public[*].pending_changes, [""]), 0)
   description = "An list of object containing the fields, 'droplet_id', 'removing', and 'status'. It is provided to detail exactly which Droplets are having their security policies updated. When empty, all changes have been successfully applied."
 }
 
-output "igw_firewall_name" {
-  value       = element(concat(digitalocean_firewall.igw[*].name, [""]), 0)
+output "public_firewall_name" {
+  value       = element(concat(digitalocean_firewall.public[*].name, [""]), 0)
   description = "The name of the Firewall."
 }
 
-output "igw_firewall_droplet_ids" {
-  value       = element(concat(digitalocean_firewall.igw[*].droplet_ids, [""]), 0)
+output "public_firewall_droplet_ids" {
+  value       = element(concat(digitalocean_firewall.public[*].droplet_ids, [""]), 0)
   description = "The list of the IDs of the Droplets assigned to the Firewall."
 }
 
-output "igw_firewall_tags" {
-  value       = element(concat(digitalocean_firewall.igw[*].tags, [""]), 0)
+output "public_firewall_tags" {
+  value       = element(concat(digitalocean_firewall.public[*].tags, [""]), 0)
   description = "The names of the Tags assigned to the Firewall."
 }
 
-# output "igw_firewall_inbound_rules" {
-#   value = element(concat(digitalocean_firewall.igw[*].inbound_rules, [""]), 0)
+# output "public_firewall_inbound_rules" {
+#   value = element(concat(digitalocean_firewall.public[*].inbound_rules, [""]), 0)
 #   description = "The inbound access rule block for the Firewall."
 # }
 # 
-# output "igw_firewall_outbound_rules" {
-#   value = element(concat(digitalocean_firewall.igw[*].outbound_rules, [""]), 0)
+# output "public_firewall_outbound_rules" {
+#   value = element(concat(digitalocean_firewall.public[*].outbound_rules, [""]), 0)
 #   description = "The outbound access rule block for the Firewall."
 # }
 

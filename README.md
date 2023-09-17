@@ -73,6 +73,7 @@ Please see the sample set of examples below for a better understanding of implem
 |------|--------|---------|
 | <a name="module_igw_label"></a> [igw\_label](#module\_igw\_label) | cloudposse/label/null | 0.25.0 |
 | <a name="module_private_label"></a> [private\_label](#module\_private\_label) | cloudposse/label/null | 0.25.0 |
+| <a name="module_public_label"></a> [public\_label](#module\_public\_label) | cloudposse/label/null | 0.25.0 |
 | <a name="module_ssh_key"></a> [ssh\_key](#module\_ssh\_key) | ./modules/ssh-key | n/a |
 | <a name="module_this"></a> [this](#module\_this) | cloudposse/label/null | 0.25.0 |
 
@@ -82,10 +83,17 @@ Please see the sample set of examples below for a better understanding of implem
 |------|------|
 | [digitalocean_droplet.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/droplet) | resource |
 | [digitalocean_droplet.private](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/droplet) | resource |
-| [digitalocean_firewall.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/firewall) | resource |
 | [digitalocean_firewall.private](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/firewall) | resource |
-| [digitalocean_floating_ip.this](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/floating_ip) | resource |
+| [digitalocean_firewall.public](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/firewall) | resource |
+| [digitalocean_floating_ip.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/floating_ip) | resource |
 | [digitalocean_floating_ip_assignment.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/floating_ip_assignment) | resource |
+| [digitalocean_loadbalancer.public](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/loadbalancer) | resource |
+| [digitalocean_project.this](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project) | resource |
+| [digitalocean_project_resources.igw_droplet](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
+| [digitalocean_project_resources.igw_droplet_volume](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
+| [digitalocean_project_resources.igw_floating_ip](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
+| [digitalocean_project_resources.private_droplet](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
+| [digitalocean_project_resources.private_droplet_voluem](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
 | [digitalocean_volume.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/volume) | resource |
 | [digitalocean_volume.private](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/volume) | resource |
 | [digitalocean_volume_attachment.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/volume_attachment) | resource |
@@ -106,11 +114,15 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_delimiter"></a> [delimiter](#input\_delimiter) | Delimiter to be used between ID elements.<br>Defaults to `-` (hyphen). Set to `""` to use no delimiter at all. | `string` | `null` | no |
 | <a name="input_descriptor_formats"></a> [descriptor\_formats](#input\_descriptor\_formats) | Describe additional descriptors to be output in the `descriptors` output map.<br>Map of maps. Keys are names of descriptors. Values are maps of the form<br>`{<br>   format = string<br>   labels = list(string)<br>}`<br>(Type is `any` so the map values can later be enhanced to provide additional options.)<br>`format` is a Terraform format string to be passed to the `format()` function.<br>`labels` is a list of labels, in order, to pass to `format()` function.<br>Label values will be normalized before being passed to `format()` so they will be<br>identical to how they appear in `id`.<br>Default is `{}` (`descriptors` output will be empty). | `any` | `{}` | no |
 | <a name="input_ecdsa_curve"></a> [ecdsa\_curve](#input\_ecdsa\_curve) | (Optional) When algorithm is 'ECDSA', the name of the elliptic curve to use. May be any one of 'P224', 'P256', 'P384' or 'P521', with 'P224' as the default. | `string` | `null` | no |
+| <a name="input_enable_internet_gateway"></a> [enable\_internet\_gateway](#input\_enable\_internet\_gateway) | (Optional) Enable creation of Internet Gateway resources. Defaults to true. | `bool` | `true` | no |
+| <a name="input_enable_project"></a> [enable\_project](#input\_enable\_project) | (Optional) A boolean flag to enable/disable Project resource creation. Defaults to true. | `bool` | `true` | no |
+| <a name="input_enable_public_lb"></a> [enable\_public\_lb](#input\_enable\_public\_lb) | (Optional) A boolean flag to enable/disable Load Balancer resource creation. Defaults to false. | `bool` | `false` | no |
 | <a name="input_enabled"></a> [enabled](#input\_enabled) | Set to false to prevent the module from creating any resources | `bool` | `null` | no |
 | <a name="input_environment"></a> [environment](#input\_environment) | ID element. Usually used for region e.g. 'uw2', 'us-west-2', OR role 'prod', 'staging', 'dev', 'UAT' | `string` | `null` | no |
+| <a name="input_firewall_allow_myip_ssh"></a> [firewall\_allow\_myip\_ssh](#input\_firewall\_allow\_myip\_ssh) | (Optional) Allow your external ip ssh inbound permissions to the internet gateway. | `bool` | `false` | no |
+| <a name="input_firewall_allow_myip_web"></a> [firewall\_allow\_myip\_web](#input\_firewall\_allow\_myip\_web) | (Optional) Allow your external ip port 80/443 inbound permissions to the private droplets. | `bool` | `false` | no |
 | <a name="input_generate_ssh_key"></a> [generate\_ssh\_key](#input\_generate\_ssh\_key) | If set to `true`, new SSH key pair will be created and `ssh_public_key_file` will be ignored. Conflicts with ssh\_public\_key\_file | `bool` | `false` | no |
 | <a name="input_id_length_limit"></a> [id\_length\_limit](#input\_id\_length\_limit) | Limit `id` to this many characters (minimum 6).<br>Set to `0` for unlimited length.<br>Set to `null` for keep the existing setting, which defaults to `0`.<br>Does not affect `id_full`. | `number` | `null` | no |
-| <a name="input_igw_allow_myip_ssh"></a> [igw\_allow\_myip\_ssh](#input\_igw\_allow\_myip\_ssh) | (Optional) Allow your external ip ssh inbound permissions to the internet gateway | `bool` | `false` | no |
 | <a name="input_igw_droplet_backups"></a> [igw\_droplet\_backups](#input\_igw\_droplet\_backups) | (Optional) Boolean controlling if backups are made. Defaults to false. | `bool` | `null` | no |
 | <a name="input_igw_droplet_cloudinit_parts"></a> [igw\_droplet\_cloudinit\_parts](#input\_igw\_droplet\_cloudinit\_parts) | (Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document. | `list(any)` | `[]` | no |
 | <a name="input_igw_droplet_enable_bastion"></a> [igw\_droplet\_enable\_bastion](#input\_igw\_droplet\_enable\_bastion) | (Optional) Boolean controlling whether to enable bastion ssh feature on droplet | `bool` | `false` | no |
@@ -124,10 +136,6 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_igw_droplet_ssh_keys"></a> [igw\_droplet\_ssh\_keys](#input\_igw\_droplet\_ssh\_keys) | (Optional) A list of SSH IDs or fingerprints to enable in the format [12345, 123456]. | `list(string)` | `[]` | no |
 | <a name="input_igw_droplet_tags"></a> [igw\_droplet\_tags](#input\_igw\_droplet\_tags) | (Optional) A list of the tags to be applied to this Droplet. | `list(string)` | `[]` | no |
 | <a name="input_igw_droplet_volume_ids"></a> [igw\_droplet\_volume\_ids](#input\_igw\_droplet\_volume\_ids) | (Optional) - A list of the IDs of each block storage volume to be attached to the Droplet. | `list(string)` | `null` | no |
-| <a name="input_igw_firewall_inbound_rules"></a> [igw\_firewall\_inbound\_rules](#input\_igw\_firewall\_inbound\_rules) | (Optional) The inbound access rule block for the Firewall. | `list(any)` | `[]` | no |
-| <a name="input_igw_firewall_name"></a> [igw\_firewall\_name](#input\_igw\_firewall\_name) | (Required) The Firewall name | `string` | `null` | no |
-| <a name="input_igw_firewall_outbound_rules"></a> [igw\_firewall\_outbound\_rules](#input\_igw\_firewall\_outbound\_rules) | (Optional) The outbound access rule block for the Firewall. | `list(any)` | `[]` | no |
-| <a name="input_igw_firewall_tags"></a> [igw\_firewall\_tags](#input\_igw\_firewall\_tags) | (Optional) - The names of the Tags assigned to the Firewall. | `list(string)` | <pre>[<br>  "igw"<br>]</pre> | no |
 | <a name="input_igw_volume_description"></a> [igw\_volume\_description](#input\_igw\_volume\_description) | (Optional) A free-form text field up to a limit of 1024 bytes to describe a block storage volume. | `string` | `null` | no |
 | <a name="input_igw_volume_enabled"></a> [igw\_volume\_enabled](#input\_igw\_volume\_enabled) | Boolean controlling whether a volume will be created and attached to the internet gateway instnace | `bool` | `false` | no |
 | <a name="input_igw_volume_initial_filesystem_label"></a> [igw\_volume\_initial\_filesystem\_label](#input\_igw\_volume\_initial\_filesystem\_label) | (Optional) Initial filesystem label for the block storage volume. | `string` | `null` | no |
@@ -168,6 +176,31 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_private_volume_size"></a> [private\_volume\_size](#input\_private\_volume\_size) | (Required) The size of the block storage volume in GiB. If updated, can only be expanded. | `number` | `null` | no |
 | <a name="input_private_volume_snapshot_id"></a> [private\_volume\_snapshot\_id](#input\_private\_volume\_snapshot\_id) | (Optional) The ID of an existing volume snapshot from which the new volume will be created. If supplied, the region and size will be limitied on creation to that of the referenced snapshot | `string` | `null` | no |
 | <a name="input_private_volume_tags"></a> [private\_volume\_tags](#input\_private\_volume\_tags) | (Optional) A list of the tags to be applied to this Volume. | `list(string)` | `[]` | no |
+| <a name="input_project_description"></a> [project\_description](#input\_project\_description) | (Optional) the description of the project | `string` | `"A project to represent development resources."` | no |
+| <a name="input_project_environment"></a> [project\_environment](#input\_project\_environment) | (Optional) the environment of the project's resources. The possible values are: Development, Staging, Production) | `string` | `"Development"` | no |
+| <a name="input_project_name"></a> [project\_name](#input\_project\_name) | (Optional) The name of the Project | `string` | `"playground"` | no |
+| <a name="input_project_purpose"></a> [project\_purpose](#input\_project\_purpose) | (Optional) the purpose of the project, (Default: 'Web Application') | `string` | `"Web Application"` | no |
+| <a name="input_public_firewall_inbound_rules"></a> [public\_firewall\_inbound\_rules](#input\_public\_firewall\_inbound\_rules) | (Optional) The inbound access rule block for the Firewall. | `list(any)` | `[]` | no |
+| <a name="input_public_firewall_name"></a> [public\_firewall\_name](#input\_public\_firewall\_name) | (Required) The Firewall name | `string` | `null` | no |
+| <a name="input_public_firewall_outbound_rules"></a> [public\_firewall\_outbound\_rules](#input\_public\_firewall\_outbound\_rules) | (Optional) The outbound access rule block for the Firewall. | `list(any)` | `[]` | no |
+| <a name="input_public_firewall_tags"></a> [public\_firewall\_tags](#input\_public\_firewall\_tags) | (Optional) - The names of the Tags assigned to the Firewall. | `list(string)` | <pre>[<br>  "igw"<br>]</pre> | no |
+| <a name="input_public_lb_algorithm"></a> [public\_lb\_algorithm](#input\_public\_lb\_algorithm) | (Optional) The load balancing algorithm used to determine which backend Droplet will be selected by a client. It must be either round\_robin or least\_connections. The default value is round\_robin. | `string` | `null` | no |
+| <a name="input_public_lb_disable_lets_encrypt_dns_records"></a> [public\_lb\_disable\_lets\_encrypt\_dns\_records](#input\_public\_lb\_disable\_lets\_encrypt\_dns\_records) | (Optional) A boolean value indicating whether to disable automatic DNS record creation for Let's Encrypt certificates that are added to the load balancer. Default value is false. | `bool` | `null` | no |
+| <a name="input_public_lb_droplet_ids"></a> [public\_lb\_droplet\_ids](#input\_public\_lb\_droplet\_ids) | (Optional) - A list of the IDs of each droplet to be attached to the Load Balancer. | `list(string)` | `null` | no |
+| <a name="input_public_lb_droplet_tag"></a> [public\_lb\_droplet\_tag](#input\_public\_lb\_droplet\_tag) | (Optional) - A list of the IDs of each droplet to be attached to the Load Balancer. | `string` | `null` | no |
+| <a name="input_public_lb_enable_backend_keepalive"></a> [public\_lb\_enable\_backend\_keepalive](#input\_public\_lb\_enable\_backend\_keepalive) | (Optional) A boolean value indicating whether HTTP keepalive connections are maintained to target Droplets. Default value is false. | `bool` | `null` | no |
+| <a name="input_public_lb_enable_proxy_protocol"></a> [public\_lb\_enable\_proxy\_protocol](#input\_public\_lb\_enable\_proxy\_protocol) | (Optional) A boolean value indicating whether PROXY Protocol should be used to pass information from connecting client requests to the backend service. Default value is false. | `bool` | `null` | no |
+| <a name="input_public_lb_firewall_allow"></a> [public\_lb\_firewall\_allow](#input\_public\_lb\_firewall\_allow) | (Optional) A list of strings describing allow rules. Must be colon delimited strings of the form {type}:{source} | `list(string)` | `[]` | no |
+| <a name="input_public_lb_firewall_deny"></a> [public\_lb\_firewall\_deny](#input\_public\_lb\_firewall\_deny) | (Optional) A list of strings describing deny rules. Must be colon delimited strings of the form {type}:{source} | `list(string)` | `[]` | no |
+| <a name="input_public_lb_forwarding_rule"></a> [public\_lb\_forwarding\_rule](#input\_public\_lb\_forwarding\_rule) | (Required) A list of forwarding\_rule to be assigned to the Load Balancer. The forwarding\_rule block is documented below. | `list(any)` | `[]` | no |
+| <a name="input_public_lb_healthcheck"></a> [public\_lb\_healthcheck](#input\_public\_lb\_healthcheck) | (Optional) A healthcheck block to be assigned to the Load Balancer. The healthcheck block is documented below. Only 1 healthcheck is allowed. | `list(any)` | `[]` | no |
+| <a name="input_public_lb_http_idle_timeout_seconds"></a> [public\_lb\_http\_idle\_timeout\_seconds](#input\_public\_lb\_http\_idle\_timeout\_seconds) | (Optional) Specifies the idle timeout for HTTPS connections on the load balancer in seconds. | `number` | `null` | no |
+| <a name="input_public_lb_name"></a> [public\_lb\_name](#input\_public\_lb\_name) | (Required) The Load Balancer name. | `string` | `null` | no |
+| <a name="input_public_lb_project_id"></a> [public\_lb\_project\_id](#input\_public\_lb\_project\_id) | (Optional) The ID of the project that the load balancer is associated with. If no ID is provided at creation, the load balancer associates with the user's default project. | `string` | `null` | no |
+| <a name="input_public_lb_redirect_http_to_https"></a> [public\_lb\_redirect\_http\_to\_https](#input\_public\_lb\_redirect\_http\_to\_https) | (Optional) A boolean value indicating whether HTTP requests to the Load Balancer on port 80 will be redirected to HTTPS on port 443. Default value is false. | `bool` | `null` | no |
+| <a name="input_public_lb_size"></a> [public\_lb\_size](#input\_public\_lb\_size) | (Optional) The size of the Load Balancer. It must be either lb-small, lb-medium, or lb-large. Defaults to lb-small. Only one of size or size\_unit may be provided. | `string` | `null` | no |
+| <a name="input_public_lb_size_unit"></a> [public\_lb\_size\_unit](#input\_public\_lb\_size\_unit) | (Optional) The size of the Load Balancer. It must be in the range (1, 100). Defaults to 1. Only one of size or size\_unit may be provided. | `number` | `null` | no |
+| <a name="input_public_lb_sticky_sessions"></a> [public\_lb\_sticky\_sessions](#input\_public\_lb\_sticky\_sessions) | (Optional) A sticky\_sessions block to be assigned to the Load Balancer. The sticky\_sessions block is documented below. Only 1 sticky\_sessions block is allowed. | `list(any)` | `[]` | no |
 | <a name="input_regex_replace_chars"></a> [regex\_replace\_chars](#input\_regex\_replace\_chars) | Terraform regular expression (regex) string.<br>Characters matching the regex will be removed from the ID elements.<br>If not set, `"/[^a-zA-Z0-9-]/"` is used to remove all characters other than hyphens, letters and digits. | `string` | `null` | no |
 | <a name="input_rsa_bits"></a> [rsa\_bits](#input\_rsa\_bits) | (Optional) When algorithm is 'RSA', the size of the generated RSA key in bits. Defaults to 2048. | `number` | `null` | no |
 | <a name="input_slack_channel"></a> [slack\_channel](#input\_slack\_channel) | (Optional) The name of the channel to be used as the destination for webhook messages. | `string` | `""` | no |
@@ -209,13 +242,6 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="output_igw_droplet_urn"></a> [igw\_droplet\_urn](#output\_igw\_droplet\_urn) | The uniform resource name of the Droplet |
 | <a name="output_igw_droplet_vcpus"></a> [igw\_droplet\_vcpus](#output\_igw\_droplet\_vcpus) | The number of the instance's virtual CPUs |
 | <a name="output_igw_droplet_volume_ids"></a> [igw\_droplet\_volume\_ids](#output\_igw\_droplet\_volume\_ids) | A list of the attached block storage volumes |
-| <a name="output_igw_firewall_created_at"></a> [igw\_firewall\_created\_at](#output\_igw\_firewall\_created\_at) | A time value given in ISO8601 combined date and time format that represents when the Firewall was created. |
-| <a name="output_igw_firewall_droplet_ids"></a> [igw\_firewall\_droplet\_ids](#output\_igw\_firewall\_droplet\_ids) | The list of the IDs of the Droplets assigned to the Firewall. |
-| <a name="output_igw_firewall_id"></a> [igw\_firewall\_id](#output\_igw\_firewall\_id) | A unique ID that can be used to identify and reference a Firewall. |
-| <a name="output_igw_firewall_name"></a> [igw\_firewall\_name](#output\_igw\_firewall\_name) | The name of the Firewall. |
-| <a name="output_igw_firewall_pending_changes"></a> [igw\_firewall\_pending\_changes](#output\_igw\_firewall\_pending\_changes) | An list of object containing the fields, 'droplet\_id', 'removing', and 'status'. It is provided to detail exactly which Droplets are having their security policies updated. When empty, all changes have been successfully applied. |
-| <a name="output_igw_firewall_status"></a> [igw\_firewall\_status](#output\_igw\_firewall\_status) | A status string indicating the current state of the Firewall. This can be 'waiting', 'succeeded', or 'failed'. |
-| <a name="output_igw_firewall_tags"></a> [igw\_firewall\_tags](#output\_igw\_firewall\_tags) | The names of the Tags assigned to the Firewall. |
 | <a name="output_igw_volume_description"></a> [igw\_volume\_description](#output\_igw\_volume\_description) | Description of the volume. |
 | <a name="output_igw_volume_droplet_ids"></a> [igw\_volume\_droplet\_ids](#output\_igw\_volume\_droplet\_ids) | A list of associated droplet ids. |
 | <a name="output_igw_volume_filesystem_label"></a> [igw\_volume\_filesystem\_label](#output\_igw\_volume\_filesystem\_label) | Filesystem label for the block storage volume. |
@@ -266,6 +292,13 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="output_private_volume_snapshot_id"></a> [private\_volume\_snapshot\_id](#output\_private\_volume\_snapshot\_id) | The ID of the existing volume snapshot from which this volume was created from. |
 | <a name="output_private_volume_tags"></a> [private\_volume\_tags](#output\_private\_volume\_tags) | List of applied tags to the volume. |
 | <a name="output_private_volume_urn"></a> [private\_volume\_urn](#output\_private\_volume\_urn) | The uniform resource name for the volume. |
+| <a name="output_public_firewall_created_at"></a> [public\_firewall\_created\_at](#output\_public\_firewall\_created\_at) | A time value given in ISO8601 combined date and time format that represents when the Firewall was created. |
+| <a name="output_public_firewall_droplet_ids"></a> [public\_firewall\_droplet\_ids](#output\_public\_firewall\_droplet\_ids) | The list of the IDs of the Droplets assigned to the Firewall. |
+| <a name="output_public_firewall_id"></a> [public\_firewall\_id](#output\_public\_firewall\_id) | A unique ID that can be used to identify and reference a Firewall. |
+| <a name="output_public_firewall_name"></a> [public\_firewall\_name](#output\_public\_firewall\_name) | The name of the Firewall. |
+| <a name="output_public_firewall_pending_changes"></a> [public\_firewall\_pending\_changes](#output\_public\_firewall\_pending\_changes) | An list of object containing the fields, 'droplet\_id', 'removing', and 'status'. It is provided to detail exactly which Droplets are having their security policies updated. When empty, all changes have been successfully applied. |
+| <a name="output_public_firewall_status"></a> [public\_firewall\_status](#output\_public\_firewall\_status) | A status string indicating the current state of the Firewall. This can be 'waiting', 'succeeded', or 'failed'. |
+| <a name="output_public_firewall_tags"></a> [public\_firewall\_tags](#output\_public\_firewall\_tags) | The names of the Tags assigned to the Firewall. |
 | <a name="output_vpc_created_at"></a> [vpc\_created\_at](#output\_vpc\_created\_at) | The date and time of when the VPC was created. |
 | <a name="output_vpc_default"></a> [vpc\_default](#output\_vpc\_default) | A boolean indicating whether or not the VPC is the default one for the region. |
 | <a name="output_vpc_id"></a> [vpc\_id](#output\_vpc\_id) | The unique identifier for the VPC. |

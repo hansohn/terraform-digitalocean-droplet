@@ -24,12 +24,21 @@ module "igw" {
   igw_droplet_enable_bastion       = var.igw_droplet_enable_bastion
   igw_droplet_enable_notifications = var.igw_droplet_enable_notifications
 
-  # igw_firewall
-  igw_allow_myip_ssh          = var.igw_allow_myip_ssh
-  igw_firewall_inbound_rules  = var.igw_firewall_inbound_rules
-  igw_firewall_outbound_rules = var.igw_firewall_outbound_rules
+  # public_loadbalancer
+  enable_public_lb          = var.enable_public_lb
+  public_lb_forwarding_rule = var.public_lb_forwarding_rule
+  public_lb_healthcheck     = var.public_lb_healthcheck
+  public_lb_firewall_deny   = var.public_lb_firewall_deny
+  public_lb_firewall_allow  = var.public_lb_firewall_allow
+
+  # public_firewall
+  firewall_allow_myip_ssh        = var.firewall_allow_myip_ssh
+  firewall_allow_myip_web        = var.firewall_allow_myip_web
+  public_firewall_inbound_rules  = var.public_firewall_inbound_rules
+  public_firewall_outbound_rules = var.public_firewall_outbound_rules
 
   # private_droplet
+  private_droplet_count      = var.private_droplet_count
   private_droplet_image      = var.private_droplet_image
   private_droplet_monitoring = var.private_droplet_monitoring
 

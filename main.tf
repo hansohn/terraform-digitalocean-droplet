@@ -57,12 +57,15 @@ resource "digitalocean_vpc" "this" {
 }
 
 #--------------------------------------------------------------
-# Floating IP
+# Project
 #--------------------------------------------------------------
 
-resource "digitalocean_floating_ip" "igw" {
-  count  = module.igw_label.enabled ? 1 : 0
-  region = digitalocean_vpc.this[0].region
+resource "digitalocean_project" "this" {
+  count       = var.enable_project ? 1 : 0
+  name        = var.project_name
+  description = var.project_description
+  purpose     = var.project_purpose
+  environment = var.project_environment
 }
 
 #--------------------------------------------------------------
@@ -197,6 +200,12 @@ resource "digitalocean_droplet" "igw" {
   volume_ids  = var.igw_droplet_volume_ids
 }
 
+resource "digitalocean_project_resources" "igw_droplet" {
+  count     = var.enable_project && module.igw_label.enabled ? 1 : 0
+  project   = digitalocean_project.this[0].id
+  resources = digitalocean_droplet.igw[*].urn
+}
+
 #--------------------------------------------------------------
 # Internet Gateway Volume
 #--------------------------------------------------------------
@@ -219,9 +228,20 @@ resource "digitalocean_volume_attachment" "igw" {
   volume_id  = digitalocean_volume.igw[0].id
 }
 
+resource "digitalocean_project_resources" "igw_droplet_volume" {
+  count     = var.enable_project && module.igw_label.enabled && var.igw_volume_enabled ? 1 : 0
+  project   = digitalocean_project.this[0].id
+  resources = digitalocean_volume.igw[*].urn
+}
+
 #--------------------------------------------------------------
-# Internet Gateway IP Assignemnt
+# Internet Gateway Floating IP
 #--------------------------------------------------------------
+
+resource "digitalocean_floating_ip" "igw" {
+  count  = module.igw_label.enabled ? 1 : 0
+  region = digitalocean_vpc.this[0].region
+}
 
 resource "digitalocean_floating_ip_assignment" "igw" {
   count      = module.igw_label.enabled ? 1 : 0
@@ -229,12 +249,18 @@ resource "digitalocean_floating_ip_assignment" "igw" {
   droplet_id = digitalocean_droplet.igw[0].id
 }
 
+resource "digitalocean_project_resources" "igw_floating_ip" {
+  count     = var.enable_project && module.igw_label.enabled ? 1 : 0
+  project   = digitalocean_project.this[0].id
+  resources = digitalocean_floating_ip.igw[*].urn
+}
+
 #--------------------------------------------------------------
 # Public Load Balancer
 #--------------------------------------------------------------
 
 resource "digitalocean_loadbalancer" "public" {
-  count     = var.private_droplet_count > 1 ? 1 : 0
+  count     = var.enable_public_lb ? 1 : 0
   name      = coalesce(var.public_lb_name, module.public_label.id)
   region    = digitalocean_vpc.this[0].region
   size      = var.public_lb_size
@@ -277,17 +303,21 @@ resource "digitalocean_loadbalancer" "public" {
   enable_backend_keepalive         = var.public_lb_enable_backend_keepalive
   http_idle_timeout_seconds        = var.public_lb_http_idle_timeout_seconds
   disable_lets_encrypt_dns_records = var.public_lb_disable_lets_encrypt_dns_records
-  project_id                       = var.public_lb_project_id
+  project_id                       = var.enable_project ? digitalocean_project.this[0].id : var.public_lb_project_id
   vpc_uuid                         = digitalocean_vpc.this[0].id
-  droplet_ids                      = var.public_lb_droplet_ids
+  droplet_ids                      = digitalocean_droplet.private[*].id
   droplet_tag                      = var.public_lb_droplet_tag
-  dynamic "firewall" {
-    for_each = var.public_lb_firewall
-    content {
-      deny  = lookup(firewall.value, "deny", null)
-      allow = lookup(firewall.value, "allow", null)
-    }
+  firewall {
+    deny  = var.public_lb_firewall_deny
+    allow = compact(concat(["ip:${chomp(data.http.myip[0].response_body)}"], var.public_lb_firewall_allow))
   }
+  # dynamic "firewall" {
+  #   for_each = var.public_lb_firewall
+  #   content {
+  #     deny  = lookup(firewall.value, "deny", null)
+  #     allow = lookup(firewall.value, "allow", null)
+  #   }
+  # }
 }
 
 #--------------------------------------------------------------
@@ -304,19 +334,19 @@ locals {
     tomap({
       protocol         = "tcp"
       port_range       = "22"
-      source_addresses = "${chomp(data.http.myip[0].body)}/32"
+      source_addresses = "${chomp(data.http.myip[0].response_body)}/32"
     })
   ] : []
   public_firewall_inbound_myip_web = var.private_droplet_count > 1 && var.firewall_allow_myip_web ? [
     tomap({
       protocol         = "tcp"
       port_range       = "80"
-      source_addresses = "${chomp(data.http.myip[0].body)}/32"
+      source_addresses = "${chomp(data.http.myip[0].response_body)}/32"
     }),
     tomap({
       protocol         = "tcp"
       port_range       = "443"
-      source_addresses = "${chomp(data.http.myip[0].body)}/32"
+      source_addresses = "${chomp(data.http.myip[0].response_body)}/32"
     }),
   ] : []
   public_firewall_inbound_rules = concat(local.public_firewall_inbound_myip_ssh, local.public_firewall_inbound_myip_web)
@@ -426,6 +456,12 @@ resource "digitalocean_droplet" "private" {
   volume_ids  = var.private_droplet_volume_ids
 }
 
+resource "digitalocean_project_resources" "private_droplet" {
+  count     = var.enable_project && module.private_label.enabled && var.private_droplet_count > 0 ? 1 : 0
+  project   = digitalocean_project.this[0].id
+  resources = digitalocean_droplet.private[*].urn
+}
+
 #--------------------------------------------------------------
 # Private Volume
 #--------------------------------------------------------------
@@ -448,35 +484,66 @@ resource "digitalocean_volume_attachment" "private" {
   volume_id  = digitalocean_volume.private[count.index].id
 }
 
+resource "digitalocean_project_resources" "private_droplet_voluem" {
+  count     = var.enable_project && module.private_label.enabled && var.private_volume_enabled ? 1 : 0
+  project   = digitalocean_project.this[0].id
+  resources = digitalocean_volume.private[*].urn
+}
+
 #--------------------------------------------------------------
 # Private Firewall
 #--------------------------------------------------------------
 
 locals {
-  private_firewall_inbound_lb_web = var.private_droplet_count == 1 && var.firewall_allow_myip_web ? [
+  private_firewall_inbound_bastion_ssh = var.firewall_allow_myip_ssh && var.igw_droplet_enable_bastion ? [
     tomap({
-      protocol         = "tcp"
-      port_range       = "80"
-      source_addresses = "${chomp(data.http.myip[0].body)}/32"
-    }),
-    tomap({
-      protocol         = "tcp"
-      port_range       = "443"
-      source_addresses = "${chomp(data.http.myip[0].body)}/32"
-    }),
-    ] : var.private_droplet_count > 1 ? [
-    tomap({
-      protocol         = "tcp"
-      port_range       = "80"
-      source_addresses = digitalocean_loadbalancer.public[0].id
-    }),
-    tomap({
-      protocol         = "tcp"
-      port_range       = "443"
-      source_addresses = digitalocean_loadbalancer.public[0].id
+      protocol    = "tcp"
+      port_range  = "22"
+      source_tags = "igw"
     }),
   ] : []
-  private_firewall_inbound_rules = local.private_firewall_inbound_lb_web
+  private_firewall_inbound_lb_ssh = var.firewall_allow_myip_ssh && var.enable_public_lb ? [
+    tomap({
+      protocol         = "tcp"
+      port_range       = "22"
+      source_addresses = digitalocean_vpc.this[0].ip_range
+    }),
+    tomap({
+      protocol         = "tcp"
+      port_range       = "22"
+      source_addresses = join(",", [for ip in digitalocean_loadbalancer.public[*].ip : "${ip}/32"])
+    }),
+  ] : []
+  private_firewall_inbound_bastion_web = var.firewall_allow_myip_web && var.igw_droplet_enable_bastion ? [
+    tomap({
+      protocol    = "tcp"
+      port_range  = "80"
+      source_tags = "igw"
+    }),
+    tomap({
+      protocol    = "tcp"
+      port_range  = "443"
+      source_tags = "igw"
+    }),
+  ] : []
+  private_firewall_inbound_lb_web = var.firewall_allow_myip_web && var.enable_public_lb ? [
+    tomap({
+      protocol         = "tcp"
+      port_range       = "80"
+      source_addresses = join(",", [for ip in digitalocean_loadbalancer.public[*].ip : "${ip}/32"])
+    }),
+    tomap({
+      protocol         = "tcp"
+      port_range       = "443"
+      source_addresses = join(",", [for ip in digitalocean_loadbalancer.public[*].ip : "${ip}/32"])
+    }),
+  ] : []
+  private_firewall_inbound_rules = concat(
+    local.private_firewall_inbound_bastion_ssh,
+    local.private_firewall_inbound_lb_ssh,
+    local.private_firewall_inbound_bastion_web,
+    local.private_firewall_inbound_lb_web,
+  )
 }
 
 resource "digitalocean_firewall" "private" {

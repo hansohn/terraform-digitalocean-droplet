@@ -260,6 +260,12 @@ variable "igw_volume_tags" {
 # Public Load Balancer
 #--------------------------------------------------------------
 
+variable "enable_public_lb" {
+  type        = bool
+  default     = false
+  description = "(Optional) A boolean flag to enable/disable Load Balancer resource creation. Defaults to false."
+}
+
 variable "public_lb_name" {
   type        = string
   default     = null
@@ -350,10 +356,16 @@ variable "public_lb_droplet_tag" {
   description = "(Optional) - A list of the IDs of each droplet to be attached to the Load Balancer."
 }
 
-variable "public_lb_firewall" {
-  type        = list(any)
+variable "public_lb_firewall_deny" {
+  type        = list(string)
   default     = []
-  description = "(Optional) - A block containing rules for allowing/denying traffic to the Load Balancer. The firewall block is documented below. Only 1 firewall is allowed."
+  description = "(Optional) A list of strings describing deny rules. Must be colon delimited strings of the form {type}:{source}"
+}
+
+variable "public_lb_firewall_allow" {
+  type        = list(string)
+  default     = []
+  description = "(Optional) A list of strings describing allow rules. Must be colon delimited strings of the form {type}:{source}"
 }
 
 #--------------------------------------------------------------

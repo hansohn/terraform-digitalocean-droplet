@@ -25,7 +25,11 @@ module "igw" {
   igw_droplet_enable_notifications = var.igw_droplet_enable_notifications
 
   # public_loadbalancer
+  enable_public_lb          = var.enable_public_lb
   public_lb_forwarding_rule = var.public_lb_forwarding_rule
+  public_lb_healthcheck     = var.public_lb_healthcheck
+  public_lb_firewall_deny   = var.public_lb_firewall_deny
+  public_lb_firewall_allow  = var.public_lb_firewall_allow
 
   # public_firewall
   firewall_allow_myip_ssh        = var.firewall_allow_myip_ssh

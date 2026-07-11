@@ -24,6 +24,14 @@ DOCUMENTATION:
 
 - add an Architecture section with a Mermaid diagram, NAT/gateway network-flow explanation, and feature-toggle table
 
+## [1.1.0](https://github.com/hansohn/terraform-digitalocean-droplet/compare/1.0.0...1.1.0) (Sep 16, 2023)
+
+FEATURES:
+
+- add public load balancer support with forwarding rules, health checks, and sticky sessions
+- add load balancer firewall and associated variables and outputs
+- update CI module version
+
 ## [1.0.0](https://gitlab.hrt.io/Infrastructure/terraform-aws-athena/compare/0.1.0...1.0.0) (Mar 11, 2023)
 
 FEATURES:

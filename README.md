@@ -43,6 +43,85 @@ Available targets:
   help/short                          This help short screen
 ```
 
+## :building_construction: Architecture
+
+This module provisions a **private-by-default droplet topology behind a NAT/"internet
+gateway" droplet** inside a DigitalOcean VPC. Private droplets have no direct public
+egress path of their own; instead they route outbound traffic through the gateway
+droplet, which performs NAT. An optional public load balancer fronts the private
+droplets for inbound web traffic, and an optional bastion role on the gateway provides
+hardened SSH ingress.
+
+```mermaid
+flowchart TB
+  internet((Internet))
+  fip["Floating IP"]
+
+  subgraph vpc["DigitalOcean VPC (var.vpc_ip_range)"]
+    igw["IGW Droplet<br/>NAT gateway + optional bastion<br/>(ip_forward + iptables MASQUERADE)"]
+    lb["Public Load Balancer<br/>(optional)"]
+    priv["Private Droplets<br/>(private_droplet_count)"]
+  end
+
+  %% Ingress
+  internet -->|SSH / bastion| fip --> igw
+  internet -->|HTTP/HTTPS| lb -->|droplet_ids| priv
+
+  %% Egress (NAT)
+  priv -.->|default route via<br/>gateway private IP| igw
+  igw ==>|MASQUERADE / NAT| internet
+
+  %% Firewalls
+  pubfw{{"Public Firewall<br/>attached to IGW droplet"}} -.protects.- igw
+  privfw{{"Private Firewall<br/>attached to private droplets"}} -.protects.- priv
+```
+
+### How it works
+
+- **VPC** — all resources are created inside a `digitalocean_vpc` scoped to `var.vpc_ip_range`.
+- **Internet gateway (NAT)** — the gateway droplet is bootstrapped via cloud-init to enable
+  `net.ipv4.ip_forward` and install a persistent iptables `MASQUERADE` rule for the VPC
+  range, turning it into the egress point for the subnet. A `digitalocean_floating_ip` is
+  attached to give it a stable public address.
+- **Private droplets** — each private droplet's cloud-init rewrites its **default route** to the
+  gateway droplet's private IPv4 (`ipv4_address_private`) and pins a route to the DO metadata
+  endpoint (`169.254.169.254`), so all outbound internet traffic transits the gateway.
+- **Public load balancer** *(optional)* — when enabled, a `digitalocean_loadbalancer` distributes
+  inbound HTTP/HTTPS to the private droplets (`droplet_ids`), with its own firewall block that
+  denies by default and allows your detected public IP plus any `public_lb_firewall_allow` entries.
+- **Firewalls** — the **public firewall** attaches to the *gateway* droplet and the **private
+  firewall** attaches to the *private* droplets. When `firewall_allow_myip_ssh` / `firewall_allow_myip_web`
+  are set, the module resolves your caller IP via `https://ipinfo.io/ip` (`data.http.myip`) and
+  auto-allows it. Bastion/LB source rules are derived automatically (e.g. private droplets accept
+  SSH from the `igw`-tagged gateway and from the load balancer's IPs).
+- **Bastion** *(optional)* — with `igw_droplet_enable_bastion`, the gateway additionally installs
+  and configures `fail2ban`; `igw_droplet_enable_notifications` wires fail2ban bans to a Slack
+  webhook (`slack_*` inputs).
+- **SSH keys** — the [`ssh-key`](modules/ssh-key) submodule either generates a new key pair or
+  imports an existing public key, and its fingerprint is attached to every droplet.
+- **Project grouping** *(optional)* — with `enable_project`, a `digitalocean_project` is created and
+  all droplets, volumes, and the floating IP are associated with it.
+- **Block storage** *(optional)* — `igw_volume_enabled` / `private_volume_enabled` attach
+  `digitalocean_volume` block storage to the gateway and/or private droplets.
+
+### Feature toggles
+
+| Input | Default | Description |
+|-------|---------|-------------|
+| `enabled` | `null` | Master switch for the module. `null`/`true` creates resources; `false` creates none. |
+| `enable_internet_gateway` | `true` | Create the NAT/gateway droplet and its floating IP. |
+| `enable_public_lb` | `false` | Front the private droplets with a public load balancer. |
+| `enable_project` | `true` | Wrap all resources in a DigitalOcean project. |
+| `igw_droplet_enable_bastion` | `false` | Harden the gateway as an SSH bastion (fail2ban). |
+| `igw_droplet_enable_notifications` | `false` | Send fail2ban ban notifications to Slack. |
+| `igw_volume_enabled` | `false` | Attach block storage to the gateway droplet. |
+| `private_volume_enabled` | `false` | Attach block storage to each private droplet. |
+| `firewall_allow_myip_ssh` | `false` | Auto-allow your detected public IP for SSH. |
+| `firewall_allow_myip_web` | `false` | Auto-allow your detected public IP for HTTP/HTTPS. |
+| `private_droplet_count` | `1` | Number of private droplets to create behind the gateway. |
+
+> See the generated [Inputs](#inputs) table below for the full set of variables and their defaults.
+
 ## :octocat: Examples
 
 Please see the sample set of examples below for a better understanding of implementation
@@ -50,69 +129,16 @@ Please see the sample set of examples below for a better understanding of implem
 - [Complete](examples/complete) - Complete Example
 
 <!-- BEGIN_TF_DOCS -->
-## Requirements
-
-| Name | Version |
-|------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0.0 |
-| <a name="requirement_cloudinit"></a> [cloudinit](#requirement\_cloudinit) | >= 2.0.0 |
-| <a name="requirement_digitalocean"></a> [digitalocean](#requirement\_digitalocean) | >= 2.0.0 |
-| <a name="requirement_http"></a> [http](#requirement\_http) | >= 3.0.0 |
-
-## Providers
-
-| Name | Version |
-|------|---------|
-| <a name="provider_cloudinit"></a> [cloudinit](#provider\_cloudinit) | >= 2.0.0 |
-| <a name="provider_digitalocean"></a> [digitalocean](#provider\_digitalocean) | >= 2.0.0 |
-| <a name="provider_http"></a> [http](#provider\_http) | >= 3.0.0 |
-
-## Modules
-
-| Name | Source | Version |
-|------|--------|---------|
-| <a name="module_igw_label"></a> [igw\_label](#module\_igw\_label) | cloudposse/label/null | 0.25.0 |
-| <a name="module_private_label"></a> [private\_label](#module\_private\_label) | cloudposse/label/null | 0.25.0 |
-| <a name="module_public_label"></a> [public\_label](#module\_public\_label) | cloudposse/label/null | 0.25.0 |
-| <a name="module_ssh_key"></a> [ssh\_key](#module\_ssh\_key) | ./modules/ssh-key | n/a |
-| <a name="module_this"></a> [this](#module\_this) | cloudposse/label/null | 0.25.0 |
-
-## Resources
-
-| Name | Type |
-|------|------|
-| [digitalocean_droplet.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/droplet) | resource |
-| [digitalocean_droplet.private](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/droplet) | resource |
-| [digitalocean_firewall.private](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/firewall) | resource |
-| [digitalocean_firewall.public](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/firewall) | resource |
-| [digitalocean_floating_ip.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/floating_ip) | resource |
-| [digitalocean_floating_ip_assignment.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/floating_ip_assignment) | resource |
-| [digitalocean_loadbalancer.public](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/loadbalancer) | resource |
-| [digitalocean_project.this](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project) | resource |
-| [digitalocean_project_resources.igw_droplet](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
-| [digitalocean_project_resources.igw_droplet_volume](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
-| [digitalocean_project_resources.igw_floating_ip](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
-| [digitalocean_project_resources.private_droplet](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
-| [digitalocean_project_resources.private_droplet_voluem](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/project_resources) | resource |
-| [digitalocean_volume.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/volume) | resource |
-| [digitalocean_volume.private](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/volume) | resource |
-| [digitalocean_volume_attachment.igw](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/volume_attachment) | resource |
-| [digitalocean_volume_attachment.private](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/volume_attachment) | resource |
-| [digitalocean_vpc.this](https://registry.terraform.io/providers/digitalocean/digitalocean/latest/docs/resources/vpc) | resource |
-| [cloudinit_config.igw](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs/data-sources/config) | data source |
-| [cloudinit_config.private](https://registry.terraform.io/providers/hashicorp/cloudinit/latest/docs/data-sources/config) | data source |
-| [http_http.myip](https://registry.terraform.io/providers/hashicorp/http/latest/docs/data-sources/http) | data source |
-
 ## Inputs
 
 | Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_additional_tag_map"></a> [additional\_tag\_map](#input\_additional\_tag\_map) | Additional key-value pairs to add to each map in `tags_as_list_of_maps`. Not added to `tags` or `id`.<br>This is for some rare cases where resources want additional configuration of tags<br>and therefore take a list of maps with tag key, value, and additional configuration. | `map(string)` | `{}` | no |
+| ---- | ----------- | ---- | ------- | :------: |
+| <a name="input_additional_tag_map"></a> [additional\_tag\_map](#input\_additional\_tag\_map) | Additional key-value pairs to add to each map in `tags_as_list_of_maps`. Not added to `tags` or `id`.<br/>This is for some rare cases where resources want additional configuration of tags<br/>and therefore take a list of maps with tag key, value, and additional configuration. | `map(string)` | `{}` | no |
 | <a name="input_algorithm"></a> [algorithm](#input\_algorithm) | SSH key algorithm | `string` | `"RSA"` | no |
-| <a name="input_attributes"></a> [attributes](#input\_attributes) | ID element. Additional attributes (e.g. `workers` or `cluster`) to add to `id`,<br>in the order they appear in the list. New attributes are appended to the<br>end of the list. The elements of the list are joined by the `delimiter`<br>and treated as a single ID element. | `list(string)` | `[]` | no |
-| <a name="input_context"></a> [context](#input\_context) | Single object for setting entire context at once.<br>See description of individual variables for details.<br>Leave string and numeric variables as `null` to use default value.<br>Individual variable settings (non-null) override settings in context object,<br>except for attributes, tags, and additional\_tag\_map, which are merged. | `any` | <pre>{<br>  "additional_tag_map": {},<br>  "attributes": [],<br>  "delimiter": null,<br>  "descriptor_formats": {},<br>  "enabled": true,<br>  "environment": null,<br>  "id_length_limit": null,<br>  "label_key_case": null,<br>  "label_order": [],<br>  "label_value_case": null,<br>  "labels_as_tags": [<br>    "unset"<br>  ],<br>  "name": null,<br>  "namespace": null,<br>  "regex_replace_chars": null,<br>  "stage": null,<br>  "tags": {},<br>  "tenant": null<br>}</pre> | no |
-| <a name="input_delimiter"></a> [delimiter](#input\_delimiter) | Delimiter to be used between ID elements.<br>Defaults to `-` (hyphen). Set to `""` to use no delimiter at all. | `string` | `null` | no |
-| <a name="input_descriptor_formats"></a> [descriptor\_formats](#input\_descriptor\_formats) | Describe additional descriptors to be output in the `descriptors` output map.<br>Map of maps. Keys are names of descriptors. Values are maps of the form<br>`{<br>   format = string<br>   labels = list(string)<br>}`<br>(Type is `any` so the map values can later be enhanced to provide additional options.)<br>`format` is a Terraform format string to be passed to the `format()` function.<br>`labels` is a list of labels, in order, to pass to `format()` function.<br>Label values will be normalized before being passed to `format()` so they will be<br>identical to how they appear in `id`.<br>Default is `{}` (`descriptors` output will be empty). | `any` | `{}` | no |
+| <a name="input_attributes"></a> [attributes](#input\_attributes) | ID element. Additional attributes (e.g. `workers` or `cluster`) to add to `id`,<br/>in the order they appear in the list. New attributes are appended to the<br/>end of the list. The elements of the list are joined by the `delimiter`<br/>and treated as a single ID element. | `list(string)` | `[]` | no |
+| <a name="input_context"></a> [context](#input\_context) | Single object for setting entire context at once.<br/>See description of individual variables for details.<br/>Leave string and numeric variables as `null` to use default value.<br/>Individual variable settings (non-null) override settings in context object,<br/>except for attributes, tags, and additional\_tag\_map, which are merged. | `any` | <pre>{<br/>  "additional_tag_map": {},<br/>  "attributes": [],<br/>  "delimiter": null,<br/>  "descriptor_formats": {},<br/>  "enabled": true,<br/>  "environment": null,<br/>  "id_length_limit": null,<br/>  "label_key_case": null,<br/>  "label_order": [],<br/>  "label_value_case": null,<br/>  "labels_as_tags": [<br/>    "unset"<br/>  ],<br/>  "name": null,<br/>  "namespace": null,<br/>  "regex_replace_chars": null,<br/>  "stage": null,<br/>  "tags": {},<br/>  "tenant": null<br/>}</pre> | no |
+| <a name="input_delimiter"></a> [delimiter](#input\_delimiter) | Delimiter to be used between ID elements.<br/>Defaults to `-` (hyphen). Set to `""` to use no delimiter at all. | `string` | `null` | no |
+| <a name="input_descriptor_formats"></a> [descriptor\_formats](#input\_descriptor\_formats) | Describe additional descriptors to be output in the `descriptors` output map.<br/>Map of maps. Keys are names of descriptors. Values are maps of the form<br/>`{<br/>   format = string<br/>   labels = list(string)<br/>}`<br/>(Type is `any` so the map values can later be enhanced to provide additional options.)<br/>`format` is a Terraform format string to be passed to the `format()` function.<br/>`labels` is a list of labels, in order, to pass to `format()` function.<br/>Label values will be normalized before being passed to `format()` so they will be<br/>identical to how they appear in `id`.<br/>Default is `{}` (`descriptors` output will be empty). | `any` | `{}` | no |
 | <a name="input_ecdsa_curve"></a> [ecdsa\_curve](#input\_ecdsa\_curve) | (Optional) When algorithm is 'ECDSA', the name of the elliptic curve to use. May be any one of 'P224', 'P256', 'P384' or 'P521', with 'P224' as the default. | `string` | `null` | no |
 | <a name="input_enable_internet_gateway"></a> [enable\_internet\_gateway](#input\_enable\_internet\_gateway) | (Optional) Enable creation of Internet Gateway resources. Defaults to true. | `bool` | `true` | no |
 | <a name="input_enable_project"></a> [enable\_project](#input\_enable\_project) | (Optional) A boolean flag to enable/disable Project resource creation. Defaults to true. | `bool` | `true` | no |
@@ -122,7 +148,7 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_firewall_allow_myip_ssh"></a> [firewall\_allow\_myip\_ssh](#input\_firewall\_allow\_myip\_ssh) | (Optional) Allow your external ip ssh inbound permissions to the internet gateway. | `bool` | `false` | no |
 | <a name="input_firewall_allow_myip_web"></a> [firewall\_allow\_myip\_web](#input\_firewall\_allow\_myip\_web) | (Optional) Allow your external ip port 80/443 inbound permissions to the private droplets. | `bool` | `false` | no |
 | <a name="input_generate_ssh_key"></a> [generate\_ssh\_key](#input\_generate\_ssh\_key) | If set to `true`, new SSH key pair will be created and `ssh_public_key_file` will be ignored. Conflicts with ssh\_public\_key\_file | `bool` | `false` | no |
-| <a name="input_id_length_limit"></a> [id\_length\_limit](#input\_id\_length\_limit) | Limit `id` to this many characters (minimum 6).<br>Set to `0` for unlimited length.<br>Set to `null` for keep the existing setting, which defaults to `0`.<br>Does not affect `id_full`. | `number` | `null` | no |
+| <a name="input_id_length_limit"></a> [id\_length\_limit](#input\_id\_length\_limit) | Limit `id` to this many characters (minimum 6).<br/>Set to `0` for unlimited length.<br/>Set to `null` for keep the existing setting, which defaults to `0`.<br/>Does not affect `id_full`. | `number` | `null` | no |
 | <a name="input_igw_droplet_backups"></a> [igw\_droplet\_backups](#input\_igw\_droplet\_backups) | (Optional) Boolean controlling if backups are made. Defaults to false. | `bool` | `null` | no |
 | <a name="input_igw_droplet_cloudinit_parts"></a> [igw\_droplet\_cloudinit\_parts](#input\_igw\_droplet\_cloudinit\_parts) | (Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document. | `list(any)` | `[]` | no |
 | <a name="input_igw_droplet_enable_bastion"></a> [igw\_droplet\_enable\_bastion](#input\_igw\_droplet\_enable\_bastion) | (Optional) Boolean controlling whether to enable bastion ssh feature on droplet | `bool` | `false` | no |
@@ -144,13 +170,13 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_igw_volume_size"></a> [igw\_volume\_size](#input\_igw\_volume\_size) | (Required) The size of the block storage volume in GiB. If updated, can only be expanded. | `number` | `null` | no |
 | <a name="input_igw_volume_snapshot_id"></a> [igw\_volume\_snapshot\_id](#input\_igw\_volume\_snapshot\_id) | (Optional) The ID of an existing volume snapshot from which the new volume will be created. If supplied, the region and size will be limitied on creation to that of the referenced snapshot | `string` | `null` | no |
 | <a name="input_igw_volume_tags"></a> [igw\_volume\_tags](#input\_igw\_volume\_tags) | (Optional) A list of the tags to be applied to this Volume. | `list(string)` | `[]` | no |
-| <a name="input_label_key_case"></a> [label\_key\_case](#input\_label\_key\_case) | Controls the letter case of the `tags` keys (label names) for tags generated by this module.<br>Does not affect keys of tags passed in via the `tags` input.<br>Possible values: `lower`, `title`, `upper`.<br>Default value: `title`. | `string` | `null` | no |
-| <a name="input_label_order"></a> [label\_order](#input\_label\_order) | The order in which the labels (ID elements) appear in the `id`.<br>Defaults to ["namespace", "environment", "stage", "name", "attributes"].<br>You can omit any of the 6 labels ("tenant" is the 6th), but at least one must be present. | `list(string)` | `null` | no |
-| <a name="input_label_value_case"></a> [label\_value\_case](#input\_label\_value\_case) | Controls the letter case of ID elements (labels) as included in `id`,<br>set as tag values, and output by this module individually.<br>Does not affect values of tags passed in via the `tags` input.<br>Possible values: `lower`, `title`, `upper` and `none` (no transformation).<br>Set this to `title` and set `delimiter` to `""` to yield Pascal Case IDs.<br>Default value: `lower`. | `string` | `null` | no |
-| <a name="input_labels_as_tags"></a> [labels\_as\_tags](#input\_labels\_as\_tags) | Set of labels (ID elements) to include as tags in the `tags` output.<br>Default is to include all labels.<br>Tags with empty values will not be included in the `tags` output.<br>Set to `[]` to suppress all generated tags.<br>**Notes:**<br>  The value of the `name` tag, if included, will be the `id`, not the `name`.<br>  Unlike other `null-label` inputs, the initial setting of `labels_as_tags` cannot be<br>  changed in later chained modules. Attempts to change it will be silently ignored. | `set(string)` | <pre>[<br>  "default"<br>]</pre> | no |
+| <a name="input_label_key_case"></a> [label\_key\_case](#input\_label\_key\_case) | Controls the letter case of the `tags` keys (label names) for tags generated by this module.<br/>Does not affect keys of tags passed in via the `tags` input.<br/>Possible values: `lower`, `title`, `upper`.<br/>Default value: `title`. | `string` | `null` | no |
+| <a name="input_label_order"></a> [label\_order](#input\_label\_order) | The order in which the labels (ID elements) appear in the `id`.<br/>Defaults to ["namespace", "environment", "stage", "name", "attributes"].<br/>You can omit any of the 6 labels ("tenant" is the 6th), but at least one must be present. | `list(string)` | `null` | no |
+| <a name="input_label_value_case"></a> [label\_value\_case](#input\_label\_value\_case) | Controls the letter case of ID elements (labels) as included in `id`,<br/>set as tag values, and output by this module individually.<br/>Does not affect values of tags passed in via the `tags` input.<br/>Possible values: `lower`, `title`, `upper` and `none` (no transformation).<br/>Set this to `title` and set `delimiter` to `""` to yield Pascal Case IDs.<br/>Default value: `lower`. | `string` | `null` | no |
+| <a name="input_labels_as_tags"></a> [labels\_as\_tags](#input\_labels\_as\_tags) | Set of labels (ID elements) to include as tags in the `tags` output.<br/>Default is to include all labels.<br/>Tags with empty values will not be included in the `tags` output.<br/>Set to `[]` to suppress all generated tags.<br/>**Notes:**<br/>  The value of the `name` tag, if included, will be the `id`, not the `name`.<br/>  Unlike other `null-label` inputs, the initial setting of `labels_as_tags` cannot be<br/>  changed in later chained modules. Attempts to change it will be silently ignored. | `set(string)` | <pre>[<br/>  "default"<br/>]</pre> | no |
 | <a name="input_local_download_enabled"></a> [local\_download\_enabled](#input\_local\_download\_enabled) | (Optional) If generate\_ssh\_key enabled, the key pair will be downloaded locally to the ssh\_key\_path | `bool` | `true` | no |
 | <a name="input_local_ssh_key_path"></a> [local\_ssh\_key\_path](#input\_local\_ssh\_key\_path) | Path to local SSH public key directory (e.g. `/secrets`) | `string` | `null` | no |
-| <a name="input_name"></a> [name](#input\_name) | ID element. Usually the component or solution name, e.g. 'app' or 'jenkins'.<br>This is the only ID element not also included as a `tag`.<br>The "name" tag is set to the full `id` string. There is no tag with the value of the `name` input. | `string` | `null` | no |
+| <a name="input_name"></a> [name](#input\_name) | ID element. Usually the component or solution name, e.g. 'app' or 'jenkins'.<br/>This is the only ID element not also included as a `tag`.<br/>The "name" tag is set to the full `id` string. There is no tag with the value of the `name` input. | `string` | `null` | no |
 | <a name="input_namespace"></a> [namespace](#input\_namespace) | ID element. Usually an abbreviation of your organization name, e.g. 'eg' or 'cp', to help ensure generated IDs are globally unique | `string` | `null` | no |
 | <a name="input_private_droplet_backups"></a> [private\_droplet\_backups](#input\_private\_droplet\_backups) | (Optional) Boolean controlling if backups are made. Defaults to false. | `bool` | `null` | no |
 | <a name="input_private_droplet_cloudinit_parts"></a> [private\_droplet\_cloudinit\_parts](#input\_private\_droplet\_cloudinit\_parts) | (Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document. | `list(any)` | `[]` | no |
@@ -167,7 +193,7 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_private_firewall_inbound_rules"></a> [private\_firewall\_inbound\_rules](#input\_private\_firewall\_inbound\_rules) | (Optional) The inbound access rule block for the Firewall. | `list(any)` | `[]` | no |
 | <a name="input_private_firewall_name"></a> [private\_firewall\_name](#input\_private\_firewall\_name) | (Required) The Firewall name | `string` | `null` | no |
 | <a name="input_private_firewall_outbound_rules"></a> [private\_firewall\_outbound\_rules](#input\_private\_firewall\_outbound\_rules) | (Optional) The outbound access rule block for the Firewall. | `list(any)` | `[]` | no |
-| <a name="input_private_firewall_tags"></a> [private\_firewall\_tags](#input\_private\_firewall\_tags) | (Optional) - The names of the Tags assigned to the Firewall. | `list(string)` | <pre>[<br>  "private"<br>]</pre> | no |
+| <a name="input_private_firewall_tags"></a> [private\_firewall\_tags](#input\_private\_firewall\_tags) | (Optional) - The names of the Tags assigned to the Firewall. | `list(string)` | <pre>[<br/>  "private"<br/>]</pre> | no |
 | <a name="input_private_volume_description"></a> [private\_volume\_description](#input\_private\_volume\_description) | (Optional) A free-form text field up to a limit of 1024 bytes to describe a block storage volume. | `string` | `null` | no |
 | <a name="input_private_volume_enabled"></a> [private\_volume\_enabled](#input\_private\_volume\_enabled) | Boolean controlling whether a volume will be created and attached to the private instnace(s) | `bool` | `false` | no |
 | <a name="input_private_volume_initial_filesystem_label"></a> [private\_volume\_initial\_filesystem\_label](#input\_private\_volume\_initial\_filesystem\_label) | (Optional) Initial filesystem label for the block storage volume. | `string` | `null` | no |
@@ -183,7 +209,7 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_public_firewall_inbound_rules"></a> [public\_firewall\_inbound\_rules](#input\_public\_firewall\_inbound\_rules) | (Optional) The inbound access rule block for the Firewall. | `list(any)` | `[]` | no |
 | <a name="input_public_firewall_name"></a> [public\_firewall\_name](#input\_public\_firewall\_name) | (Required) The Firewall name | `string` | `null` | no |
 | <a name="input_public_firewall_outbound_rules"></a> [public\_firewall\_outbound\_rules](#input\_public\_firewall\_outbound\_rules) | (Optional) The outbound access rule block for the Firewall. | `list(any)` | `[]` | no |
-| <a name="input_public_firewall_tags"></a> [public\_firewall\_tags](#input\_public\_firewall\_tags) | (Optional) - The names of the Tags assigned to the Firewall. | `list(string)` | <pre>[<br>  "igw"<br>]</pre> | no |
+| <a name="input_public_firewall_tags"></a> [public\_firewall\_tags](#input\_public\_firewall\_tags) | (Optional) - The names of the Tags assigned to the Firewall. | `list(string)` | <pre>[<br/>  "igw"<br/>]</pre> | no |
 | <a name="input_public_lb_algorithm"></a> [public\_lb\_algorithm](#input\_public\_lb\_algorithm) | (Optional) The load balancing algorithm used to determine which backend Droplet will be selected by a client. It must be either round\_robin or least\_connections. The default value is round\_robin. | `string` | `null` | no |
 | <a name="input_public_lb_disable_lets_encrypt_dns_records"></a> [public\_lb\_disable\_lets\_encrypt\_dns\_records](#input\_public\_lb\_disable\_lets\_encrypt\_dns\_records) | (Optional) A boolean value indicating whether to disable automatic DNS record creation for Let's Encrypt certificates that are added to the load balancer. Default value is false. | `bool` | `null` | no |
 | <a name="input_public_lb_droplet_ids"></a> [public\_lb\_droplet\_ids](#input\_public\_lb\_droplet\_ids) | (Optional) - A list of the IDs of each droplet to be attached to the Load Balancer. | `list(string)` | `null` | no |
@@ -201,7 +227,7 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_public_lb_size"></a> [public\_lb\_size](#input\_public\_lb\_size) | (Optional) The size of the Load Balancer. It must be either lb-small, lb-medium, or lb-large. Defaults to lb-small. Only one of size or size\_unit may be provided. | `string` | `null` | no |
 | <a name="input_public_lb_size_unit"></a> [public\_lb\_size\_unit](#input\_public\_lb\_size\_unit) | (Optional) The size of the Load Balancer. It must be in the range (1, 100). Defaults to 1. Only one of size or size\_unit may be provided. | `number` | `null` | no |
 | <a name="input_public_lb_sticky_sessions"></a> [public\_lb\_sticky\_sessions](#input\_public\_lb\_sticky\_sessions) | (Optional) A sticky\_sessions block to be assigned to the Load Balancer. The sticky\_sessions block is documented below. Only 1 sticky\_sessions block is allowed. | `list(any)` | `[]` | no |
-| <a name="input_regex_replace_chars"></a> [regex\_replace\_chars](#input\_regex\_replace\_chars) | Terraform regular expression (regex) string.<br>Characters matching the regex will be removed from the ID elements.<br>If not set, `"/[^a-zA-Z0-9-]/"` is used to remove all characters other than hyphens, letters and digits. | `string` | `null` | no |
+| <a name="input_regex_replace_chars"></a> [regex\_replace\_chars](#input\_regex\_replace\_chars) | Terraform regular expression (regex) string.<br/>Characters matching the regex will be removed from the ID elements.<br/>If not set, `"/[^a-zA-Z0-9-]/"` is used to remove all characters other than hyphens, letters and digits. | `string` | `null` | no |
 | <a name="input_rsa_bits"></a> [rsa\_bits](#input\_rsa\_bits) | (Optional) When algorithm is 'RSA', the size of the generated RSA key in bits. Defaults to 2048. | `number` | `null` | no |
 | <a name="input_slack_channel"></a> [slack\_channel](#input\_slack\_channel) | (Optional) The name of the channel to be used as the destination for webhook messages. | `string` | `""` | no |
 | <a name="input_slack_icon"></a> [slack\_icon](#input\_slack\_icon) | (Optional) Slack emoji icon to used for notifications. | `string` | `""` | no |
@@ -210,7 +236,7 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_ssh_key_name"></a> [ssh\_key\_name](#input\_ssh\_key\_name) | If ssh\_public\_key\_file and generate\_ssh\_key are undefined, the name of existing DigitalOcean ssh key to utilize. If ssh\_public\_key\_file or generate\_ssh\_key are defined, the name to be assoicated with the ssh key in DigitalOcean | `string` | `null` | no |
 | <a name="input_ssh_public_key_file"></a> [ssh\_public\_key\_file](#input\_ssh\_public\_key\_file) | Filename (including path) of existing SSH public key file (e.g. `/path/to/id_rsa.pub`). Confilcts with generate\_ssh\_key. | `string` | `null` | no |
 | <a name="input_stage"></a> [stage](#input\_stage) | ID element. Usually used to indicate role, e.g. 'prod', 'staging', 'source', 'build', 'test', 'deploy', 'release' | `string` | `null` | no |
-| <a name="input_tags"></a> [tags](#input\_tags) | Additional tags (e.g. `{'BusinessUnit': 'XYZ'}`).<br>Neither the tag keys nor the tag values will be modified by this module. | `map(string)` | `{}` | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | Additional tags (e.g. `{'BusinessUnit': 'XYZ'}`).<br/>Neither the tag keys nor the tag values will be modified by this module. | `map(string)` | `{}` | no |
 | <a name="input_tenant"></a> [tenant](#input\_tenant) | ID element \_(Rarely used, not included by default)\_. A customer identifier, indicating who this instance of a resource is for | `string` | `null` | no |
 | <a name="input_vpc_description"></a> [vpc\_description](#input\_vpc\_description) | (Optional) A free-form text field up to a limit of 255 characters to describe the VPC. | `string` | `null` | no |
 | <a name="input_vpc_ip_range"></a> [vpc\_ip\_range](#input\_vpc\_ip\_range) | (Optional) The range of IP addresses for the VPC in CIDR notation. Network ranges cannot overlap with other networks in the same account and must be in range of private addresses as defined in RFC1918. It may not be larger than /16 or smaller than /24. | `string` | `null` | no |
@@ -220,7 +246,7 @@ Please see the sample set of examples below for a better understanding of implem
 ## Outputs
 
 | Name | Description |
-|------|-------------|
+| ---- | ----------- |
 | <a name="output_floating_ip_address"></a> [floating\_ip\_address](#output\_floating\_ip\_address) | The IP Address of the resource |
 | <a name="output_floating_ip_urn"></a> [floating\_ip\_urn](#output\_floating\_ip\_urn) | The uniform resource name of the floating ip |
 | <a name="output_igw_droplet_disk"></a> [igw\_droplet\_disk](#output\_igw\_droplet\_disk) | The size of the instance's disk in GB |

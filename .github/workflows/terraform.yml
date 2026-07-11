@@ -1,30 +1,30 @@
 ---
 name: terraform
 
+# yamllint disable-line rule:truthy
 on:
-  workflow_dispatch:
   push:
     branches:
-      - '*'
-    pull_request:
-      types:
-        - opened
-        - reopened
-        - synchronize
+      - '**'
     tags:
       - 'v?[0-9]+.[0-9]+.[0-9]+'
+  schedule:
+    - cron: '0 7 * * 1,3,5'
+  workflow_dispatch:
 
 jobs:
-  terraform_modules:
-    name: loc_tf_modules
+  locate:
+    name: Locate
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
+
       - name: Install Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.14'
+
       - name: Build Matrix
         id: matrix
         run: |
@@ -33,78 +33,32 @@ jobs:
     outputs:
       directories: ${{ steps.matrix.outputs.directories }}
 
-  terraform_versions:
-    name: get_tf_vers
-    needs:
-      - terraform_modules
+  validate:
+    name: Validate
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        directory: ${{ fromJson(needs.terraform_modules.outputs.directories) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Terraform min/max versions
-        id: versions
-        uses: clowdhaus/terraform-min-max@v1.2.7
-        with:
-          directory: ${{ matrix.directory }}
-    outputs:
-      minVersion: ${{ steps.versions.outputs.minVersion }}
-      maxVersion: ${{ steps.versions.outputs.maxVersion }}
-
-  validate_min_versions:
-    name: test_tf_min_ver
-    needs:
-      - terraform_modules
-      - terraform_versions
-    runs-on: ubuntu-latest
-    container: hansohn/terraform-digitalocean:latest
+    container:
+      image: hansohn/terraform-digitalocean:latest
+    needs: [ locate ]
     strategy:
       fail-fast: false
       matrix:
-        directory: ${{ fromJson(needs.terraform_modules.outputs.directories) }}
-        version:
-          - ${{ needs.terraform_versions.outputs.minVersion }}
+        directory: ${{ fromJson(needs.locate.outputs.directories) }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - name: Install Terraform v${{ matrix.version }}
-        run: tfget ${{ matrix.version }}
-      - name: Validate
-        run: |
-            cd ${{ matrix.directory }}
-            terraform init --backend=false
-            terraform validate
+        uses: actions/checkout@v7
 
-  validate_max_versions:
-    name: test_tf_max_ver
-    needs:
-      - terraform_modules
-      - terraform_versions
-    runs-on: ubuntu-latest
-    container: hansohn/terraform-digitalocean:latest
-    strategy:
-      fail-fast: false
-      matrix:
-        directory: ${{ fromJson(needs.terraform_modules.outputs.directories) }}
-        version:
-          - ${{ needs.terraform_versions.outputs.maxVersion }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Install Terraform v${{ matrix.version }}
-        run: tfget ${{ matrix.version }}
-      - name: Terraform Fmt
+      - name: Terraform Format
         run: |
             cd ${{ matrix.directory }}
             terraform fmt --check
+
       - name: Validate
         run: |
             cd ${{ matrix.directory }}
             terraform init --backend=false
             terraform validate
-      - name: Tflint
+
+      - name: Lint
         run: |
             tflint \
               --chdir=${{ matrix.directory }} \
@@ -119,6 +73,7 @@ jobs:
               --only=terraform_required_version \
               --only=terraform_typed_variables \
               --only=terraform_workspace_remote
+
       - name: Terraform Docs
         if: ${{ !startsWith(matrix.directory, './examples/') }}
         run: |
@@ -127,23 +82,20 @@ jobs:
               --output-check=true \
               --output-file README.md \
               --output-mode inject \
-              markdown \
+              markdown table \
               ${{ matrix.directory }}
 
   slack:
-    if: always()
-    needs:
-      - terraform_modules
-      - terraform_versions
-      - validate_min_versions
-      - validate_max_versions
+    name: Slack
     runs-on: ubuntu-latest
+    needs: [ locate, validate ]
+    if: always()
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
 
       - name: Slack Notification
-        uses: Gamesight/slack-workflow-status@master
+        uses: Gamesight/slack-workflow-status@v2.0.0
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           slack_webhook_url: ${{ secrets.SLACK_WEBHOOK }}

@@ -1,6 +1,6 @@
-#--------------------------------------------------------------
+################################################################################
 # SSH-Key
-#--------------------------------------------------------------
+################################################################################
 
 variable "ssh_key_name" {
   type        = string
@@ -50,9 +50,9 @@ variable "local_ssh_key_path" {
   description = "Path to local SSH public key directory (e.g. `/secrets`)"
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Project
-#--------------------------------------------------------------
+################################################################################
 
 variable "enable_project" {
   type        = bool
@@ -84,9 +84,9 @@ variable "project_environment" {
   description = "(Optional) the environment of the project's resources. The possible values are: Development, Staging, Production)"
 }
 
-#--------------------------------------------------------------
+################################################################################
 # VPC
-#--------------------------------------------------------------
+################################################################################
 
 variable "vpc_name" {
   type        = string
@@ -112,9 +112,9 @@ variable "vpc_ip_range" {
   description = "(Optional) The range of IP addresses for the VPC in CIDR notation. Network ranges cannot overlap with other networks in the same account and must be in range of private addresses as defined in RFC1918. It may not be larger than /16 or smaller than /24."
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Internet Gateway Droplet
-#--------------------------------------------------------------
+################################################################################
 
 variable "enable_internet_gateway" {
   type        = bool
@@ -200,9 +200,9 @@ variable "igw_droplet_enable_notifications" {
   description = "(Optional) Boolean controlling whether to enable slack notifications. Currently this feature only applies to bastion fail2ban sshd jail notifications."
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Slack Notifications
-#--------------------------------------------------------------
+################################################################################
 
 variable "slack_channel" {
   type        = string
@@ -228,9 +228,9 @@ variable "slack_webhook_url" {
   description = "(Optional) The Incoming Webhook URL"
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Private Volume
-#--------------------------------------------------------------
+################################################################################
 
 variable "igw_volume_enabled" {
   type        = bool
@@ -280,9 +280,9 @@ variable "igw_volume_tags" {
   description = "(Optional) A list of the tags to be applied to this Volume."
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Public Load Balancer
-#--------------------------------------------------------------
+################################################################################
 
 variable "enable_public_lb" {
   type        = bool
@@ -392,9 +392,9 @@ variable "public_lb_firewall_allow" {
   description = "(Optional) A list of strings describing allow rules. Must be colon delimited strings of the form {type}:{source}"
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Public Firewall
-#--------------------------------------------------------------
+################################################################################
 
 variable "public_firewall_name" {
   type        = string
@@ -455,9 +455,9 @@ variable "firewall_allow_myip_web" {
   description = "(Optional) Allow your external ip port 80/443 inbound permissions to the private droplets."
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Private Droplet
-#--------------------------------------------------------------
+################################################################################
 
 variable "private_droplet_count" {
   type        = number
@@ -531,9 +531,9 @@ variable "private_droplet_cloudinit_parts" {
   description = "(Optional) List of nested block types which adds a file to the generated cloud-init configuration. Use multiple part blocks to specify multiple files, which will be included in order of declaration in the final MIME document."
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Private Volume
-#--------------------------------------------------------------
+################################################################################
 
 variable "private_volume_enabled" {
   type        = bool
@@ -583,9 +583,9 @@ variable "private_volume_tags" {
   description = "(Optional) A list of the tags to be applied to this Volume."
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Private Firewall
-#--------------------------------------------------------------
+################################################################################
 
 variable "private_firewall_name" {
   type        = string

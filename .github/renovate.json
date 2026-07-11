@@ -1,0 +1,20 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":preserveSemverRanges"
+  ],
+  "labels": [
+    "auto-update"
+  ],
+  "enabledManagers": [
+    "terraform",
+    "github-actions"
+  ],
+  "terraform": {
+    "ignorePaths": [
+      "**/context.tf",
+      "examples/**"
+    ]
+  }
+}

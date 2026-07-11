@@ -1,6 +1,6 @@
-#--------------------------------------------------------------
+################################################################################
 # VPC
-#--------------------------------------------------------------
+################################################################################
 
 output "vpc_id" {
   value       = element(concat(digitalocean_vpc.this[*].id, [""]), 0)
@@ -22,9 +22,9 @@ output "vpc_created_at" {
   description = "The date and time of when the VPC was created."
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Floating Ip
-#--------------------------------------------------------------
+################################################################################
 
 output "floating_ip_address" {
   value       = element(concat(digitalocean_floating_ip.igw[*].ip_address, [""]), 0)
@@ -36,9 +36,9 @@ output "floating_ip_urn" {
   description = "The uniform resource name of the floating ip"
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Internet Gateway Droplet
-#--------------------------------------------------------------
+################################################################################
 
 output "igw_droplet_id" {
   value       = element(concat(digitalocean_droplet.igw[*].id, [""]), 0)
@@ -135,9 +135,9 @@ output "igw_droplet_volume_ids" {
   description = "A list of the attached block storage volumes"
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Internet Gateway Volume
-#--------------------------------------------------------------
+################################################################################
 
 output "igw_volume_id" {
   value       = element(concat(digitalocean_volume.igw[*].id, [""]), 0)
@@ -199,9 +199,9 @@ output "igw_volume_initial_filesystem_label" {
   description = "Filesystem label for the block storage volume when it was first created."
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Internet Gateway Firewall
-#--------------------------------------------------------------
+################################################################################
 
 output "public_firewall_id" {
   value       = element(concat(digitalocean_firewall.public[*].id, [""]), 0)
@@ -248,9 +248,9 @@ output "public_firewall_tags" {
 #   description = "The outbound access rule block for the Firewall."
 # }
 
-#--------------------------------------------------------------
+################################################################################
 # Private Droplet(s)
-#--------------------------------------------------------------
+################################################################################
 
 output "private_droplet_id" {
   value       = element(concat(digitalocean_droplet.private[*].id, [""]), 0)
@@ -347,9 +347,9 @@ output "private_droplet_volume_ids" {
   description = "A list of the attached block storage volumes"
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Private Volume
-#--------------------------------------------------------------
+################################################################################
 
 output "private_volume_id" {
   value       = element(concat(digitalocean_volume.private[*].id, [""]), 0)
@@ -411,9 +411,9 @@ output "private_volume_initial_filesystem_label" {
   description = "Filesystem label for the block storage volume when it was first created."
 }
 
-#--------------------------------------------------------------
+################################################################################
 # Private Droplet Firewall
-#--------------------------------------------------------------
+################################################################################
 
 output "private_firewall_id" {
   value       = element(concat(digitalocean_firewall.private[*].id, [""]), 0)

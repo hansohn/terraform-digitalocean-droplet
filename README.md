@@ -14,10 +14,6 @@
     <a href="https://github.com/hansohn/terraform-digitalocean-droplet/blob/main/LICENSE">
       <img src="https://img.shields.io/github/license/hansohn/terraform-digitalocean-droplet.svg?style=for-the-badge">
     </a>
-    <!-- LinkedIn -->
-    <a href="https://linkedin.com/in/ryanhansohn">
-      <img src="https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555">
-    </a>
   </p>
 </div>
 

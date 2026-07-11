@@ -308,8 +308,11 @@ resource "digitalocean_loadbalancer" "public" {
   droplet_ids                      = digitalocean_droplet.private[*].id
   droplet_tag                      = var.public_lb_droplet_tag
   firewall {
-    deny  = var.public_lb_firewall_deny
-    allow = compact(concat(["ip:${chomp(data.http.myip[0].response_body)}"], var.public_lb_firewall_allow))
+    deny = var.public_lb_firewall_deny
+    # Only prepend the caller's detected IP when data.http.myip was actually
+    # queried (firewall_allow_myip_ssh || firewall_allow_myip_web); otherwise
+    # the count-guarded data source is empty and [0] would be out of range.
+    allow = compact(concat(length(data.http.myip) > 0 ? ["ip:${chomp(data.http.myip[0].response_body)}"] : [], var.public_lb_firewall_allow))
   }
   # dynamic "firewall" {
   #   for_each = var.public_lb_firewall
@@ -376,7 +379,7 @@ resource "digitalocean_firewall" "public" {
       destination_addresses          = lookup(outbound_rule.value, "destination_addresses", null) != null ? split(",", lookup(outbound_rule.value, "destination_addresses")) : null
       destination_droplet_ids        = lookup(outbound_rule.value, "destination_droplet_ids", null) != null ? split(",", lookup(outbound_rule.value, "destination_droplet_ids")) : null
       destination_tags               = lookup(outbound_rule.value, "destination_tags", null) != null ? split(",", lookup(outbound_rule.value, "destination_tags")) : null
-      destination_load_balancer_uids = lookup(outbound_rule.value, "destination_load_balancer_uids", null) != null ? split(",", lookup(outbound_rule.value, "destinattion_load_balancer_uids")) : null
+      destination_load_balancer_uids = lookup(outbound_rule.value, "destination_load_balancer_uids", null) != null ? split(",", lookup(outbound_rule.value, "destination_load_balancer_uids")) : null
     }
   }
 }
@@ -467,9 +470,12 @@ resource "digitalocean_project_resources" "private_droplet" {
 #--------------------------------------------------------------
 
 resource "digitalocean_volume" "private" {
-  count                    = module.private_label.enabled && var.private_volume_enabled ? var.private_droplet_count : 0
-  region                   = digitalocean_vpc.this[0].region
-  name                     = var.private_volume_name
+  count  = module.private_label.enabled && var.private_volume_enabled ? var.private_droplet_count : 0
+  region = digitalocean_vpc.this[0].region
+  # Volume names must be unique. Suffix with the index only when more than one
+  # private droplet is created so existing single-volume deployments are not
+  # renamed (which would force replacement of a data-bearing volume).
+  name                     = var.private_droplet_count > 1 ? "${var.private_volume_name}-${count.index}" : var.private_volume_name
   size                     = var.private_volume_size
   description              = var.private_volume_description
   snapshot_id              = var.private_volume_snapshot_id
@@ -570,7 +576,7 @@ resource "digitalocean_firewall" "private" {
       destination_addresses          = lookup(outbound_rule.value, "destination_addresses", null) != null ? split(",", lookup(outbound_rule.value, "destination_addresses")) : null
       destination_droplet_ids        = lookup(outbound_rule.value, "destination_droplet_ids", null) != null ? split(",", lookup(outbound_rule.value, "destination_droplet_ids")) : null
       destination_tags               = lookup(outbound_rule.value, "destination_tags", null) != null ? split(",", lookup(outbound_rule.value, "destination_tags")) : null
-      destination_load_balancer_uids = lookup(outbound_rule.value, "destination_load_balancer_uids", null) != null ? split(",", lookup(outbound_rule.value, "destinattion_load_balancer_uids")) : null
+      destination_load_balancer_uids = lookup(outbound_rule.value, "destination_load_balancer_uids", null) != null ? split(",", lookup(outbound_rule.value, "destination_load_balancer_uids")) : null
     }
   }
 }

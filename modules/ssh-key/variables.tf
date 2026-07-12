@@ -33,7 +33,7 @@ variable "ssh_public_key_file" {
 variable "generate_ssh_key" {
   type        = bool
   default     = false
-  description = "If set to `true`, new SSH key pair will be created and `ssh_public_key_file` will be ignored. Conflicts with ssh_public_key_file"
+  description = "If set to `true`, a new SSH key pair is generated and `ssh_public_key_file` is ignored. Conflicts with ssh_public_key_file. WARNING: the generated private key is stored in Terraform state in plaintext (and written to disk when local_download_enabled is true); for production prefer importing a public key via `ssh_public_key_file` or referencing an existing key via `ssh_key_name`."
 }
 
 variable "algorithm" {
@@ -57,7 +57,7 @@ variable "ecdsa_curve" {
 variable "local_download_enabled" {
   type        = bool
   default     = true
-  description = "(Optional) If generate_ssh_key enabled, the key pair will be downloaded locally to the ssh_key_path"
+  description = "(Optional) When generate_ssh_key is true, write the generated key pair to local_ssh_key_path. WARNING: this writes the private key to disk in plaintext."
 }
 
 variable "local_ssh_key_path" {

@@ -4,7 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](unreleased)
 
-- no new features in development at this time
+IMPROVEMENTS:
+
+- ssh-key: document that `generate_ssh_key` stores the generated private key in Terraform state (and on disk when `local_download_enabled` is true); recommend importing/referencing an existing key for production
 
 ## [2.0.1](https://github.com/hansohn/terraform-digitalocean-droplet/compare/2.0.0...2.0.1) (Jul 11, 2026)
 

@@ -1,7 +1,7 @@
 MAKEFLAGS += --warn-undefined-variables
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
-.DEFAULT_GOAL := all
+.DEFAULT_GOAL := dev
 .DELETE_ON_ERROR:
 .SUFFIXES:
 
@@ -10,61 +10,53 @@ export SELF ?= $(MAKE)
 PROJECT_PATH ?= $(shell 'pwd')
 include $(PROJECT_PATH)/Makefile.*
 
-#-------------------------------------------------------------------------------
-# docker
-#-------------------------------------------------------------------------------
+# main
+export UNAME_S ?= $(shell uname -s)
+
+export DIGITALOCEAN_TOKEN ?=
+export REPO_NAME := $(shell basename ${PWD})
 
 DOCKER_IMAGE ?= hansohn/terraform-digitalocean
-DOCKER_TAG ?= latest
-ENTRYPOINT ?= bash
+DOCKER_TAG   ?= latest
+DOCKER_PULL  ?= always
 
-DOCKER_RUN_ARGS ?=
-DOCKER_RUN_ARGS += --interactive
-DOCKER_RUN_ARGS += --tty
-DOCKER_RUN_ARGS += --rm
-DOCKER_RUN_ARGS += --workdir /app
-DOCKER_RUN_ARGS += --volume ${PWD}:/app
-DOCKER_RUN_ARGS += --volume ${HOME}/.aws:/root/.aws
-DOCKER_RUN_ARGS += --volume ${HOME}/.gitconfig:/root/.gitconfig
-DOCKER_RUN_ARGS += --volume ${HOME}/.netrc:/root/.netrc
-DOCKER_RUN_ARGS += --pull always
+DOCKER_ARGS ?=
+DOCKER_ARGS += --interactive
+DOCKER_ARGS += --tty
+DOCKER_ARGS += --rm
+DOCKER_ARGS += --env DIGITALOCEAN_TOKEN
+DOCKER_ARGS += --env REPO_NAME
+DOCKER_ARGS += --workdir /app
+DOCKER_ARGS += --volume ${PWD}:/app
+DOCKER_ARGS += --volume ${HOME}/.ssh/known_hosts:/root/.ssh/known_hosts
+DOCKER_ARGS += --volume ${HOME}/.gitconfig:/root/.gitconfig:ro
+DOCKER_ARGS += --pull $(DOCKER_PULL)
 
-## Docker run image
-docker/run:
-	-@if docker info > /dev/null 2>&1; then \
-		echo "[INFO] Running '$(DOCKER_IMAGE):$(DOCKER_TAG)' docker image"; \
-		docker run $(DOCKER_RUN_ARGS) "$(DOCKER_IMAGE):$(DOCKER_TAG)" "$(ENTRYPOINT)"; \
-	else \
-		echo "[ERROR] Docker 'run' failed. Docker daemon is not Running."; \
-	fi
-.PHONY: docker/run
+SSH_AUTH_SOCK_MAGIC_PATH := /run/host-services/ssh-auth.sock
+ifeq ($(UNAME_S),Darwin)
+DOCKER_ARGS += --env SSH_AUTH_SOCK=$(SSH_AUTH_SOCK_MAGIC_PATH)
+DOCKER_ARGS += --volume $(SSH_AUTH_SOCK_MAGIC_PATH):$(SSH_AUTH_SOCK_MAGIC_PATH)
+endif
 
-## Docker lint, build and run image
-docker: docker/run
-.PHONY: docker
 
-#-------------------------------------------------------------------------------
-# clean
-#-------------------------------------------------------------------------------
+## Run local dev env
+dev: ENTRYPOINT ?= bash
 
-## Clean docker build images
-clean/docker:
-	-@if docker info > /dev/null 2>&1; then \
-		if docker inspect --type=image "$(DOCKER_IMAGE):$(DOCKER_TAG)" > /dev/null 2>&1; then \
-		echo "[INFO] Removing docker image '$(DOCKER_IMAGE):$(DOCKER_TAG)'"; \
-			docker rmi -f $$(docker inspect --format='{{ .Id }}' --type=image $(DOCKER_IMAGE):$(DOCKER_TAG)); \
-		fi; \
-	fi
-.PHONY: clean/docker
+dev:
+	docker run \
+		$(DOCKER_ARGS) \
+		$(DOCKER_IMAGE):$(DOCKER_TAG) \
+		$(ENTRYPOINT)
 
-TG_GENERATED_FILES += .terraform .terraform.lock.hcl .terragrunt-cache
-## Clean terraform generated files/directories
-clean/terraform:
-	-@for i in $(TG_GENERATED_FILES); do \
-		find . -name "$$i" -prune -exec rm -rf {} \;; \
-	done
-.PHONY: clean/terraform
+.PHONY: dev
+
+CLEAN_DIRS  += .terraform
+CLEAN_FILES += .terraform.lock.hcl terraform.plan
+$(CLEAN_DIRS):
+	find . -type d -name $@ -prune -exec rm -rf {} \;
+$(CLEAN_FILES):
+	find . -type f -name $@ -exec rm -f {} \;
 
 ## Clean everything
-clean: clean/docker clean/terraform
-.PHONY: clean
+clean: $(CLEAN_DIRS) $(CLEAN_FILES)
+.PHONY: clean $(CLEAN_DIRS) $(CLEAN_FILES)

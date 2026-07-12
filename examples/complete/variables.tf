@@ -18,6 +18,12 @@ variable "name" {
   description = "Base name used to derive resource names."
 }
 
+variable "enabled" {
+  type        = bool
+  default     = true
+  description = "Set to false to prevent the module from creating any resources."
+}
+
 variable "tags" {
   type        = list(string)
   default     = []

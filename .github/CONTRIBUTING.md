@@ -47,7 +47,7 @@ so you do not need to install it locally.
 
 2. **Start a local dev shell** (pulls the tooling image and mounts the repo):
    ```bash
-   make docker
+   make dev
    ```
 
 3. **Inside the container, validate the module:**
@@ -81,7 +81,7 @@ We welcome various types of contributions:
 
 3. Test your changes locally:
    ```bash
-   make docker
+   make dev
    # inside the container:
    terraform fmt --check
    terraform validate

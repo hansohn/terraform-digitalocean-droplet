@@ -19,7 +19,29 @@
 
 ## :open_book: Usage
 
-Welcome to the terraform-digitalocean-droplet repo!
+```hcl
+module "droplet" {
+  source  = "hansohn/droplet/digitalocean"
+  version = "~> 2.0"
+
+  name = "example-dev"
+  tags = ["example", "dev"]
+
+  # vpc
+  vpc_region   = "sfo3"
+  vpc_ip_range = "10.10.10.0/24"
+
+  # internet gateway (NAT) droplet
+  igw_droplet_image = "ubuntu-22-04-x64"
+
+  # private droplets routed through the gateway
+  private_droplet_image = "ubuntu-22-04-x64"
+  private_droplet_count = 2
+}
+```
+
+Authenticate by exporting `DIGITALOCEAN_TOKEN` (used by both the Terraform provider and
+`doctl`). See the [complete example](examples/complete) for the full set of inputs.
 
 
 ### Makefile
@@ -30,10 +52,7 @@ I've included the following make targets for convenience:
 Available targets:
 
   clean                               Clean everything
-  clean/docker                        Clean docker build images
-  clean/terraform                     Clean terraform generated files/directories
-  docker                              Docker lint, build and run image
-  docker/run                          Docker run image
+  dev                                 Run local dev env
   help                                Help screen
   help/all                            Display help for all targets
   help/short                          This help short screen

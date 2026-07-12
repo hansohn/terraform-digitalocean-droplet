@@ -4,7 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](unreleased)
 
-- no new features in development at this time
+IMPROVEMENTS:
+
+- align the `Makefile` with the module template conventions: a single `dev` target (`make dev`, *Run local dev env*) and a find-based `clean`, replacing `docker`/`docker-run`/`clean-docker`/`clean-terraform`
+- example: wire the `enabled` input so the fixture's `enabled = true` is no longer an undeclared-variable warning
+- docs: add a registry-source usage snippet to the README, refresh the Makefile target list, and update CONTRIBUTING (`make docker` -> `make dev`)
 
 ## [2.0.0](https://github.com/hansohn/terraform-digitalocean-droplet/compare/1.1.1...2.0.0) (Jul 11, 2026)
 

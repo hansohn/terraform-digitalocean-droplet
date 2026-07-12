@@ -10,8 +10,9 @@ module "igw" {
   source = "../../"
 
   # general
-  name = var.name
-  tags = var.tags
+  enabled = var.enabled
+  name    = var.name
+  tags    = var.tags
 
   # ssh-key
   generate_ssh_key       = var.generate_ssh_key

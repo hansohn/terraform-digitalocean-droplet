@@ -7,8 +7,11 @@ provider "digitalocean" {
 }
 
 module "igw" {
-  source  = "../../"
-  context = module.this.context
+  source = "../../"
+
+  # general
+  name = var.name
+  tags = var.tags
 
   # ssh-key
   generate_ssh_key       = var.generate_ssh_key

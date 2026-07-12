@@ -1,4 +1,26 @@
 ################################################################################
+# General
+################################################################################
+
+variable "name" {
+  type        = string
+  default     = null
+  description = "Base name used to derive resource names (\"<name>-igw\", \"<name>-public\", \"<name>-private\"). Required when creating resources; per-resource *_name inputs override the derived names."
+}
+
+variable "enabled" {
+  type        = bool
+  default     = true
+  description = "Set to false to prevent the module from creating any resources."
+}
+
+variable "tags" {
+  type        = list(string)
+  default     = []
+  description = "List of tags applied to all taggable resources, combined with the role tag (\"igw\"/\"private\") and any per-resource *_tags."
+}
+
+################################################################################
 # SSH-Key
 ################################################################################
 

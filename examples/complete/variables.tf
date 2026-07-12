@@ -9,6 +9,22 @@ variable "do_token" {
 }
 
 ################################################################################
+# General
+################################################################################
+
+variable "name" {
+  type        = string
+  default     = null
+  description = "Base name used to derive resource names."
+}
+
+variable "tags" {
+  type        = list(string)
+  default     = []
+  description = "List of tags applied to all taggable resources."
+}
+
+################################################################################
 # SSH-Key
 ################################################################################
 

@@ -1,4 +1,20 @@
 ################################################################################
+# General
+################################################################################
+
+variable "enabled" {
+  type        = bool
+  default     = true
+  description = "Set to false to prevent the submodule from creating any resources."
+}
+
+variable "name" {
+  type        = string
+  default     = null
+  description = "Base name used for the generated or imported SSH key when ssh_key_name is not set."
+}
+
+################################################################################
 # SSH Key
 ################################################################################
 

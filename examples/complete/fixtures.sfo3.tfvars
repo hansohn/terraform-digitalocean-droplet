@@ -1,6 +1,6 @@
-namespace   = "hansohn"
-environment = "dev"
-enabled     = true
+name    = "hansohn-dev"
+tags    = ["hansohn", "dev"]
+enabled = true
 
 # ssh-key
 generate_ssh_key       = true

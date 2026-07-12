@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased](unreleased)
 
+- no new features in development at this time
+
+## [2.0.1](https://github.com/hansohn/terraform-digitalocean-droplet/compare/2.0.0...2.0.1) (Jul 11, 2026)
+
 IMPROVEMENTS:
 
 - align the `Makefile` with the module template conventions: a single `dev` target (`make dev`, *Run local dev env*) and a find-based `clean`, replacing `docker`/`docker-run`/`clean-docker`/`clean-terraform`

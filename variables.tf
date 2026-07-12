@@ -1,4 +1,26 @@
 ################################################################################
+# General
+################################################################################
+
+variable "name" {
+  type        = string
+  default     = null
+  description = "Base name used to derive resource names (\"<name>-igw\", \"<name>-public\", \"<name>-private\"). Required when creating resources; per-resource *_name inputs override the derived names."
+}
+
+variable "enabled" {
+  type        = bool
+  default     = true
+  description = "Set to false to prevent the module from creating any resources."
+}
+
+variable "tags" {
+  type        = list(string)
+  default     = []
+  description = "List of tags applied to all taggable resources, combined with the role tag (\"igw\"/\"private\") and any per-resource *_tags."
+}
+
+################################################################################
 # SSH-Key
 ################################################################################
 
@@ -22,8 +44,8 @@ variable "generate_ssh_key" {
 
 variable "algorithm" {
   type        = string
-  default     = "RSA"
-  description = "SSH key algorithm"
+  default     = "ED25519"
+  description = "SSH key algorithm. One of RSA, ECDSA, or ED25519."
 }
 
 variable "rsa_bits" {
@@ -232,7 +254,7 @@ variable "slack_webhook_url" {
 # Private Volume
 ################################################################################
 
-variable "igw_volume_enabled" {
+variable "enable_igw_volume" {
   type        = bool
   default     = false
   description = "Boolean controlling whether a volume will be created and attached to the internet gateway instnace"
@@ -368,16 +390,10 @@ variable "public_lb_project_id" {
   description = "(Optional) The ID of the project that the load balancer is associated with. If no ID is provided at creation, the load balancer associates with the user's default project."
 }
 
-variable "public_lb_droplet_ids" {
-  type        = list(string)
-  default     = null
-  description = "(Optional) - A list of the IDs of each droplet to be attached to the Load Balancer."
-}
-
 variable "public_lb_droplet_tag" {
   type        = string
   default     = null
-  description = "(Optional) - A list of the IDs of each droplet to be attached to the Load Balancer."
+  description = "(Optional) The name of a Droplet tag corresponding to Droplets to be assigned to the Load Balancer."
 }
 
 variable "public_lb_firewall_deny" {
@@ -535,7 +551,7 @@ variable "private_droplet_cloudinit_parts" {
 # Private Volume
 ################################################################################
 
-variable "private_volume_enabled" {
+variable "enable_private_volume" {
   type        = bool
   default     = false
   description = "Boolean controlling whether a volume will be created and attached to the private instnace(s)"

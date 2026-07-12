@@ -6,6 +6,29 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 - no new features in development at this time
 
+## [2.0.0](https://github.com/hansohn/terraform-digitalocean-droplet/compare/1.1.1...2.0.0) (Jul 11, 2026)
+
+BREAKING CHANGES:
+
+- remove the CloudPosse `context.tf` / `null-label` interface and replace it with `name`, `enabled`, and `tags` inputs. Removed inputs include `namespace`, `tenant`, `environment`, `stage`, `delimiter`, `attributes`, `label_order`, `context`, and the `tags` **map** (`tags` is now a `list(string)`). Migration: set `name` to your previous id (e.g. `"<namespace>-<environment>"`) and pass `tags = [...]` explicitly for parity; the `igw`/`private` role tags are still applied automatically.
+- rename `igw_volume_enabled` to `enable_igw_volume` and `private_volume_enabled` to `enable_private_volume`
+- remove the unused `public_lb_droplet_ids` input
+- change the default SSH key algorithm from `RSA` to `ED25519`; consumers using `generate_ssh_key` without pinning `algorithm` will have an Ed25519 key regenerated on next apply
+
+FEATURES:
+
+- support gateway-less mode: `enable_internet_gateway = false` now provisions private droplets in the VPC without the NAT gateway, floating IP, or public firewall (instead of erroring)
+
+BUG FIXES:
+
+- apply the my-IP web firewall rule with a single private droplet (`private_droplet_count > 1` -> `> 0`)
+- correct the copy-pasted `public_lb_droplet_tag` description
+
+IMPROVEMENTS:
+
+- simplify the ssh-key key filename construction (string interpolation + shared local)
+- gate the gateway cloud-init and public firewall on the internet gateway toggle
+
 ## [1.1.1](https://github.com/hansohn/terraform-digitalocean-droplet/compare/1.1.0...1.1.1) (Jul 11, 2026)
 
 BUG FIXES:

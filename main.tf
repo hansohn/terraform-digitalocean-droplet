@@ -1,29 +1,15 @@
 ################################################################################
-# Labeling
+# Locals
 ################################################################################
 
-module "igw_label" {
-  source     = "cloudposse/label/null"
-  version    = "0.25.0"
-  attributes = compact(concat(module.this.attributes, ["igw"]))
-  context    = module.this.context
-  enabled    = module.this.enabled && var.enable_internet_gateway
-}
+locals {
+  # Master enable switch; the internet gateway additionally honors its own toggle.
+  igw_enabled = var.enabled && var.enable_internet_gateway
 
-module "public_label" {
-  source     = "cloudposse/label/null"
-  version    = "0.25.0"
-  attributes = compact(concat(module.this.attributes, ["public"]))
-  context    = module.this.context
-  enabled    = module.this.enabled
-}
-
-module "private_label" {
-  source     = "cloudposse/label/null"
-  version    = "0.25.0"
-  attributes = compact(concat(module.this.attributes, ["private"]))
-  context    = module.this.context
-  enabled    = module.this.enabled
+  # Resource names derived from var.name; per-resource *_name inputs override these.
+  igw_name     = "${var.name}-igw"
+  public_name  = "${var.name}-public"
+  private_name = "${var.name}-private"
 }
 
 ################################################################################
@@ -32,8 +18,8 @@ module "private_label" {
 
 module "ssh_key" {
   source                 = "./modules/ssh-key"
-  context                = module.this.context
-  enabled                = module.this.enabled
+  enabled                = var.enabled
+  name                   = var.name
   algorithm              = var.algorithm
   ecdsa_curve            = var.ecdsa_curve
   generate_ssh_key       = var.generate_ssh_key
@@ -49,8 +35,8 @@ module "ssh_key" {
 ################################################################################
 
 resource "digitalocean_vpc" "this" {
-  count       = module.this.enabled ? 1 : 0
-  name        = coalesce(var.vpc_name, module.this.id)
+  count       = var.enabled ? 1 : 0
+  name        = coalesce(var.vpc_name, var.name)
   region      = var.vpc_region
   description = var.vpc_description
   ip_range    = var.vpc_ip_range
@@ -73,6 +59,7 @@ resource "digitalocean_project" "this" {
 ################################################################################
 
 data "cloudinit_config" "igw" {
+  count         = local.igw_enabled ? 1 : 0
   gzip          = false
   base64_encode = false
 
@@ -184,9 +171,9 @@ data "cloudinit_config" "igw" {
 ################################################################################
 
 resource "digitalocean_droplet" "igw" {
-  count       = module.igw_label.enabled ? 1 : 0
+  count       = local.igw_enabled ? 1 : 0
   image       = var.igw_droplet_image
-  name        = coalesce(var.igw_droplet_name, module.igw_label.id)
+  name        = coalesce(var.igw_droplet_name, local.igw_name)
   region      = digitalocean_vpc.this[0].region
   size        = var.igw_droplet_size
   backups     = var.igw_droplet_backups
@@ -195,13 +182,13 @@ resource "digitalocean_droplet" "igw" {
   vpc_uuid    = digitalocean_vpc.this[0].id
   ssh_keys    = compact(setunion(var.igw_droplet_ssh_keys, [module.ssh_key.key_fingerprint]))
   resize_disk = var.igw_droplet_resize_disk
-  tags        = compact(setunion(var.igw_droplet_tags, [for k, v in module.igw_label.tags : v if k != "Name"]))
-  user_data   = data.cloudinit_config.igw.rendered
+  tags        = compact(setunion(var.igw_droplet_tags, var.tags, ["igw"]))
+  user_data   = data.cloudinit_config.igw[0].rendered
   volume_ids  = var.igw_droplet_volume_ids
 }
 
 resource "digitalocean_project_resources" "igw_droplet" {
-  count     = var.enable_project && module.igw_label.enabled ? 1 : 0
+  count     = var.enable_project && local.igw_enabled ? 1 : 0
   project   = digitalocean_project.this[0].id
   resources = digitalocean_droplet.igw[*].urn
 }
@@ -211,7 +198,7 @@ resource "digitalocean_project_resources" "igw_droplet" {
 ################################################################################
 
 resource "digitalocean_volume" "igw" {
-  count                    = module.igw_label.enabled && var.igw_volume_enabled ? 1 : 0
+  count                    = local.igw_enabled && var.enable_igw_volume ? 1 : 0
   region                   = digitalocean_vpc.this[0].region
   name                     = var.igw_volume_name
   size                     = var.igw_volume_size
@@ -219,17 +206,17 @@ resource "digitalocean_volume" "igw" {
   snapshot_id              = var.igw_volume_snapshot_id
   initial_filesystem_type  = var.igw_volume_initial_filesystem_type
   initial_filesystem_label = var.igw_volume_initial_filesystem_label
-  tags                     = compact(setunion(var.igw_volume_tags, [for k, v in module.igw_label.tags : v if k != "Name"]))
+  tags                     = compact(setunion(var.igw_volume_tags, var.tags, ["igw"]))
 }
 
 resource "digitalocean_volume_attachment" "igw" {
-  count      = module.igw_label.enabled && var.igw_volume_enabled ? 1 : 0
+  count      = local.igw_enabled && var.enable_igw_volume ? 1 : 0
   droplet_id = digitalocean_droplet.igw[0].id
   volume_id  = digitalocean_volume.igw[0].id
 }
 
 resource "digitalocean_project_resources" "igw_droplet_volume" {
-  count     = var.enable_project && module.igw_label.enabled && var.igw_volume_enabled ? 1 : 0
+  count     = var.enable_project && local.igw_enabled && var.enable_igw_volume ? 1 : 0
   project   = digitalocean_project.this[0].id
   resources = digitalocean_volume.igw[*].urn
 }
@@ -239,18 +226,18 @@ resource "digitalocean_project_resources" "igw_droplet_volume" {
 ################################################################################
 
 resource "digitalocean_floating_ip" "igw" {
-  count  = module.igw_label.enabled ? 1 : 0
+  count  = local.igw_enabled ? 1 : 0
   region = digitalocean_vpc.this[0].region
 }
 
 resource "digitalocean_floating_ip_assignment" "igw" {
-  count      = module.igw_label.enabled ? 1 : 0
+  count      = local.igw_enabled ? 1 : 0
   ip_address = digitalocean_floating_ip.igw[0].ip_address
   droplet_id = digitalocean_droplet.igw[0].id
 }
 
 resource "digitalocean_project_resources" "igw_floating_ip" {
-  count     = var.enable_project && module.igw_label.enabled ? 1 : 0
+  count     = var.enable_project && local.igw_enabled ? 1 : 0
   project   = digitalocean_project.this[0].id
   resources = digitalocean_floating_ip.igw[*].urn
 }
@@ -261,7 +248,7 @@ resource "digitalocean_project_resources" "igw_floating_ip" {
 
 resource "digitalocean_loadbalancer" "public" {
   count     = var.enable_public_lb ? 1 : 0
-  name      = coalesce(var.public_lb_name, module.public_label.id)
+  name      = coalesce(var.public_lb_name, local.public_name)
   region    = digitalocean_vpc.this[0].region
   size      = var.public_lb_size
   size_unit = var.public_lb_size_unit
@@ -333,14 +320,14 @@ data "http" "myip" {
 }
 
 locals {
-  public_firewall_inbound_myip_ssh = module.igw_label.enabled && var.firewall_allow_myip_ssh ? [
+  public_firewall_inbound_myip_ssh = local.igw_enabled && var.firewall_allow_myip_ssh ? [
     tomap({
       protocol         = "tcp"
       port_range       = "22"
       source_addresses = "${chomp(data.http.myip[0].response_body)}/32"
     })
   ] : []
-  public_firewall_inbound_myip_web = var.private_droplet_count > 1 && var.firewall_allow_myip_web ? [
+  public_firewall_inbound_myip_web = var.private_droplet_count > 0 && var.firewall_allow_myip_web ? [
     tomap({
       protocol         = "tcp"
       port_range       = "80"
@@ -356,8 +343,8 @@ locals {
 }
 
 resource "digitalocean_firewall" "public" {
-  count       = module.public_label.enabled ? 1 : 0
-  name        = coalesce(var.public_firewall_name, module.public_label.id)
+  count       = local.igw_enabled ? 1 : 0
+  name        = coalesce(var.public_firewall_name, local.public_name)
   droplet_ids = digitalocean_droplet.igw[*].id
   tags        = var.public_firewall_tags
   dynamic "inbound_rule" {
@@ -416,15 +403,29 @@ data "cloudinit_config" "private" {
         jq \
         tmux \
         vim
-
-      # How to Configure a Droplet as a VPC Gateway
-      # https://www.digitalocean.com/docs/networking/vpc/resources/droplet-as-gateway/
-
-      # route external traffic though internet gateway
-      gw=$(route -n | awk '$1 == "0.0.0.0" {print $2}')
-      ip route add 169.254.169.254 via "$${gw}" dev eth0
-      ip route change default via ${digitalocean_droplet.igw[0].ipv4_address_private}
     CLOUDCONFIG
+  }
+
+  # Route external traffic through the internet gateway. Only included when the
+  # gateway is enabled; without it the private droplets keep DigitalOcean's
+  # default routing (gateway-less mode).
+  dynamic "part" {
+    for_each = local.igw_enabled ? [1] : []
+    content {
+      content_type = "text/x-shellscript"
+      content      = <<-CLOUDCONFIG
+        #!/usr/bin/env bash
+        set -e
+
+        # How to Configure a Droplet as a VPC Gateway
+        # https://www.digitalocean.com/docs/networking/vpc/resources/droplet-as-gateway/
+
+        # route external traffic though internet gateway
+        gw=$(route -n | awk '$1 == "0.0.0.0" {print $2}')
+        ip route add 169.254.169.254 via "$${gw}" dev eth0
+        ip route change default via ${digitalocean_droplet.igw[0].ipv4_address_private}
+      CLOUDCONFIG
+    }
   }
 
   dynamic "part" {
@@ -443,9 +444,9 @@ data "cloudinit_config" "private" {
 ################################################################################
 
 resource "digitalocean_droplet" "private" {
-  count       = module.private_label.enabled ? var.private_droplet_count : 0
+  count       = var.enabled ? var.private_droplet_count : 0
   image       = var.private_droplet_image
-  name        = "${coalesce(var.private_droplet_name, module.private_label.id)}-${count.index}"
+  name        = "${coalesce(var.private_droplet_name, local.private_name)}-${count.index}"
   region      = digitalocean_vpc.this[0].region
   size        = var.private_droplet_size
   backups     = var.private_droplet_backups
@@ -454,13 +455,13 @@ resource "digitalocean_droplet" "private" {
   vpc_uuid    = digitalocean_vpc.this[0].id
   ssh_keys    = compact(setunion(var.private_droplet_ssh_keys, [module.ssh_key.key_fingerprint]))
   resize_disk = var.private_droplet_resize_disk
-  tags        = compact(setunion(var.private_droplet_tags, [for k, v in module.private_label.tags : v if k != "Name"]))
+  tags        = compact(setunion(var.private_droplet_tags, var.tags, ["private"]))
   user_data   = data.cloudinit_config.private.rendered
   volume_ids  = var.private_droplet_volume_ids
 }
 
 resource "digitalocean_project_resources" "private_droplet" {
-  count     = var.enable_project && module.private_label.enabled && var.private_droplet_count > 0 ? 1 : 0
+  count     = var.enable_project && var.enabled && var.private_droplet_count > 0 ? 1 : 0
   project   = digitalocean_project.this[0].id
   resources = digitalocean_droplet.private[*].urn
 }
@@ -470,7 +471,7 @@ resource "digitalocean_project_resources" "private_droplet" {
 ################################################################################
 
 resource "digitalocean_volume" "private" {
-  count  = module.private_label.enabled && var.private_volume_enabled ? var.private_droplet_count : 0
+  count  = var.enabled && var.enable_private_volume ? var.private_droplet_count : 0
   region = digitalocean_vpc.this[0].region
   # Volume names must be unique. Suffix with the index only when more than one
   # private droplet is created so existing single-volume deployments are not
@@ -481,17 +482,17 @@ resource "digitalocean_volume" "private" {
   snapshot_id              = var.private_volume_snapshot_id
   initial_filesystem_type  = var.private_volume_initial_filesystem_type
   initial_filesystem_label = var.private_volume_initial_filesystem_label
-  tags                     = compact(setunion(var.private_volume_tags, [for k, v in module.private_label.tags : v if k != "Name"]))
+  tags                     = compact(setunion(var.private_volume_tags, var.tags, ["private"]))
 }
 
 resource "digitalocean_volume_attachment" "private" {
-  count      = module.private_label.enabled && var.private_volume_enabled ? var.private_droplet_count : 0
+  count      = var.enabled && var.enable_private_volume ? var.private_droplet_count : 0
   droplet_id = digitalocean_droplet.private[count.index].id
   volume_id  = digitalocean_volume.private[count.index].id
 }
 
 resource "digitalocean_project_resources" "private_droplet_voluem" {
-  count     = var.enable_project && module.private_label.enabled && var.private_volume_enabled ? 1 : 0
+  count     = var.enable_project && var.enabled && var.enable_private_volume ? 1 : 0
   project   = digitalocean_project.this[0].id
   resources = digitalocean_volume.private[*].urn
 }
@@ -553,8 +554,8 @@ locals {
 }
 
 resource "digitalocean_firewall" "private" {
-  count       = module.private_label.enabled ? 1 : 0
-  name        = coalesce(var.private_firewall_name, module.private_label.id)
+  count       = var.enabled ? 1 : 0
+  name        = coalesce(var.private_firewall_name, local.private_name)
   droplet_ids = digitalocean_droplet.private[*].id
   tags        = var.private_firewall_tags
   dynamic "inbound_rule" {

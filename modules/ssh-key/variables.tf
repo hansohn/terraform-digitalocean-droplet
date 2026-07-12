@@ -38,8 +38,8 @@ variable "generate_ssh_key" {
 
 variable "algorithm" {
   type        = string
-  default     = "RSA"
-  description = "SSH key algorithm"
+  default     = "ED25519"
+  description = "SSH key algorithm. One of RSA, ECDSA, or ED25519."
 }
 
 variable "rsa_bits" {

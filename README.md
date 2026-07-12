@@ -97,7 +97,7 @@ flowchart TB
   imports an existing public key, and its fingerprint is attached to every droplet.
 - **Project grouping** *(optional)* — with `enable_project`, a `digitalocean_project` is created and
   all droplets, volumes, and the floating IP are associated with it.
-- **Block storage** *(optional)* — `igw_volume_enabled` / `private_volume_enabled` attach
+- **Block storage** *(optional)* — `enable_igw_volume` / `enable_private_volume` attach
   `digitalocean_volume` block storage to the gateway and/or private droplets.
 
 ### Feature toggles
@@ -105,13 +105,13 @@ flowchart TB
 | Input | Default | Description |
 |-------|---------|-------------|
 | `enabled` | `true` | Master switch for the module. When `false`, no resources are created. |
-| `enable_internet_gateway` | `true` | Create the NAT/gateway droplet and its floating IP. |
+| `enable_internet_gateway` | `true` | Create the NAT/gateway droplet and its floating IP. Set `false` for gateway-less private droplets (no NAT egress). |
 | `enable_public_lb` | `false` | Front the private droplets with a public load balancer. |
 | `enable_project` | `true` | Wrap all resources in a DigitalOcean project. |
 | `igw_droplet_enable_bastion` | `false` | Harden the gateway as an SSH bastion (fail2ban). |
 | `igw_droplet_enable_notifications` | `false` | Send fail2ban ban notifications to Slack. |
-| `igw_volume_enabled` | `false` | Attach block storage to the gateway droplet. |
-| `private_volume_enabled` | `false` | Attach block storage to each private droplet. |
+| `enable_igw_volume` | `false` | Attach block storage to the gateway droplet. |
+| `enable_private_volume` | `false` | Attach block storage to each private droplet. |
 | `firewall_allow_myip_ssh` | `false` | Auto-allow your detected public IP for SSH. |
 | `firewall_allow_myip_web` | `false` | Auto-allow your detected public IP for HTTP/HTTPS. |
 | `private_droplet_count` | `1` | Number of private droplets to create behind the gateway. |
@@ -129,9 +129,11 @@ Please see the sample set of examples below for a better understanding of implem
 
 | Name | Description | Type | Default | Required |
 | ---- | ----------- | ---- | ------- | :------: |
-| <a name="input_algorithm"></a> [algorithm](#input\_algorithm) | SSH key algorithm | `string` | `"RSA"` | no |
+| <a name="input_algorithm"></a> [algorithm](#input\_algorithm) | SSH key algorithm. One of RSA, ECDSA, or ED25519. | `string` | `"ED25519"` | no |
 | <a name="input_ecdsa_curve"></a> [ecdsa\_curve](#input\_ecdsa\_curve) | (Optional) When algorithm is 'ECDSA', the name of the elliptic curve to use. May be any one of 'P224', 'P256', 'P384' or 'P521', with 'P224' as the default. | `string` | `null` | no |
+| <a name="input_enable_igw_volume"></a> [enable\_igw\_volume](#input\_enable\_igw\_volume) | Boolean controlling whether a volume will be created and attached to the internet gateway instnace | `bool` | `false` | no |
 | <a name="input_enable_internet_gateway"></a> [enable\_internet\_gateway](#input\_enable\_internet\_gateway) | (Optional) Enable creation of Internet Gateway resources. Defaults to true. | `bool` | `true` | no |
+| <a name="input_enable_private_volume"></a> [enable\_private\_volume](#input\_enable\_private\_volume) | Boolean controlling whether a volume will be created and attached to the private instnace(s) | `bool` | `false` | no |
 | <a name="input_enable_project"></a> [enable\_project](#input\_enable\_project) | (Optional) A boolean flag to enable/disable Project resource creation. Defaults to true. | `bool` | `true` | no |
 | <a name="input_enable_public_lb"></a> [enable\_public\_lb](#input\_enable\_public\_lb) | (Optional) A boolean flag to enable/disable Load Balancer resource creation. Defaults to false. | `bool` | `false` | no |
 | <a name="input_enabled"></a> [enabled](#input\_enabled) | Set to false to prevent the module from creating any resources. | `bool` | `true` | no |
@@ -152,7 +154,6 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_igw_droplet_tags"></a> [igw\_droplet\_tags](#input\_igw\_droplet\_tags) | (Optional) A list of the tags to be applied to this Droplet. | `list(string)` | `[]` | no |
 | <a name="input_igw_droplet_volume_ids"></a> [igw\_droplet\_volume\_ids](#input\_igw\_droplet\_volume\_ids) | (Optional) - A list of the IDs of each block storage volume to be attached to the Droplet. | `list(string)` | `null` | no |
 | <a name="input_igw_volume_description"></a> [igw\_volume\_description](#input\_igw\_volume\_description) | (Optional) A free-form text field up to a limit of 1024 bytes to describe a block storage volume. | `string` | `null` | no |
-| <a name="input_igw_volume_enabled"></a> [igw\_volume\_enabled](#input\_igw\_volume\_enabled) | Boolean controlling whether a volume will be created and attached to the internet gateway instnace | `bool` | `false` | no |
 | <a name="input_igw_volume_initial_filesystem_label"></a> [igw\_volume\_initial\_filesystem\_label](#input\_igw\_volume\_initial\_filesystem\_label) | (Optional) Initial filesystem label for the block storage volume. | `string` | `null` | no |
 | <a name="input_igw_volume_initial_filesystem_type"></a> [igw\_volume\_initial\_filesystem\_type](#input\_igw\_volume\_initial\_filesystem\_type) | (Optional) Initial filesystem type (xfs or ext4) for the block storage volume. | `string` | `null` | no |
 | <a name="input_igw_volume_name"></a> [igw\_volume\_name](#input\_igw\_volume\_name) | (Required) A name for the block storage volume. Must be lowercase and be composed only of numbers, letters and '-', up to a limit of 64 characters. | `string` | `null` | no |
@@ -179,7 +180,6 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_private_firewall_outbound_rules"></a> [private\_firewall\_outbound\_rules](#input\_private\_firewall\_outbound\_rules) | (Optional) The outbound access rule block for the Firewall. | `list(any)` | `[]` | no |
 | <a name="input_private_firewall_tags"></a> [private\_firewall\_tags](#input\_private\_firewall\_tags) | (Optional) - The names of the Tags assigned to the Firewall. | `list(string)` | <pre>[<br/>  "private"<br/>]</pre> | no |
 | <a name="input_private_volume_description"></a> [private\_volume\_description](#input\_private\_volume\_description) | (Optional) A free-form text field up to a limit of 1024 bytes to describe a block storage volume. | `string` | `null` | no |
-| <a name="input_private_volume_enabled"></a> [private\_volume\_enabled](#input\_private\_volume\_enabled) | Boolean controlling whether a volume will be created and attached to the private instnace(s) | `bool` | `false` | no |
 | <a name="input_private_volume_initial_filesystem_label"></a> [private\_volume\_initial\_filesystem\_label](#input\_private\_volume\_initial\_filesystem\_label) | (Optional) Initial filesystem label for the block storage volume. | `string` | `null` | no |
 | <a name="input_private_volume_initial_filesystem_type"></a> [private\_volume\_initial\_filesystem\_type](#input\_private\_volume\_initial\_filesystem\_type) | (Optional) Initial filesystem type (xfs or ext4) for the block storage volume. | `string` | `null` | no |
 | <a name="input_private_volume_name"></a> [private\_volume\_name](#input\_private\_volume\_name) | (Required) A name for the block storage volume. Must be lowercase and be composed only of numbers, letters and '-', up to a limit of 64 characters. | `string` | `null` | no |
@@ -196,8 +196,7 @@ Please see the sample set of examples below for a better understanding of implem
 | <a name="input_public_firewall_tags"></a> [public\_firewall\_tags](#input\_public\_firewall\_tags) | (Optional) - The names of the Tags assigned to the Firewall. | `list(string)` | <pre>[<br/>  "igw"<br/>]</pre> | no |
 | <a name="input_public_lb_algorithm"></a> [public\_lb\_algorithm](#input\_public\_lb\_algorithm) | (Optional) The load balancing algorithm used to determine which backend Droplet will be selected by a client. It must be either round\_robin or least\_connections. The default value is round\_robin. | `string` | `null` | no |
 | <a name="input_public_lb_disable_lets_encrypt_dns_records"></a> [public\_lb\_disable\_lets\_encrypt\_dns\_records](#input\_public\_lb\_disable\_lets\_encrypt\_dns\_records) | (Optional) A boolean value indicating whether to disable automatic DNS record creation for Let's Encrypt certificates that are added to the load balancer. Default value is false. | `bool` | `null` | no |
-| <a name="input_public_lb_droplet_ids"></a> [public\_lb\_droplet\_ids](#input\_public\_lb\_droplet\_ids) | (Optional) - A list of the IDs of each droplet to be attached to the Load Balancer. | `list(string)` | `null` | no |
-| <a name="input_public_lb_droplet_tag"></a> [public\_lb\_droplet\_tag](#input\_public\_lb\_droplet\_tag) | (Optional) - A list of the IDs of each droplet to be attached to the Load Balancer. | `string` | `null` | no |
+| <a name="input_public_lb_droplet_tag"></a> [public\_lb\_droplet\_tag](#input\_public\_lb\_droplet\_tag) | (Optional) The name of a Droplet tag corresponding to Droplets to be assigned to the Load Balancer. | `string` | `null` | no |
 | <a name="input_public_lb_enable_backend_keepalive"></a> [public\_lb\_enable\_backend\_keepalive](#input\_public\_lb\_enable\_backend\_keepalive) | (Optional) A boolean value indicating whether HTTP keepalive connections are maintained to target Droplets. Default value is false. | `bool` | `null` | no |
 | <a name="input_public_lb_enable_proxy_protocol"></a> [public\_lb\_enable\_proxy\_protocol](#input\_public\_lb\_enable\_proxy\_protocol) | (Optional) A boolean value indicating whether PROXY Protocol should be used to pass information from connecting client requests to the backend service. Default value is false. | `bool` | `null` | no |
 | <a name="input_public_lb_firewall_allow"></a> [public\_lb\_firewall\_allow](#input\_public\_lb\_firewall\_allow) | (Optional) A list of strings describing allow rules. Must be colon delimited strings of the form {type}:{source} | `list(string)` | `[]` | no |

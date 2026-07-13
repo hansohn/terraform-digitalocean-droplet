@@ -67,29 +67,12 @@ droplet, which performs NAT. An optional public load balancer fronts the private
 droplets for inbound web traffic, and an optional bastion role on the gateway provides
 hardened SSH ingress.
 
-```mermaid
-flowchart TB
-  internet((Internet))
-  fip["Floating IP"]
+<div align="center">
+  <img src="https://raw.githubusercontent.com/hansohn/terraform-digitalocean-droplet/main/docs/architecture.drawio.png" alt="terraform-digitalocean-droplet architecture" width="820">
+</div>
 
-  subgraph vpc["DigitalOcean VPC (var.vpc_ip_range)"]
-    igw["IGW Droplet<br/>NAT gateway + optional bastion<br/>(ip_forward + iptables MASQUERADE)"]
-    lb["Public Load Balancer<br/>(optional)"]
-    priv["Private Droplets<br/>(private_droplet_count)"]
-  end
+<!-- Diagram source: docs/architecture.drawio — edit in draw.io / diagrams.net, then File > Export as > PNG to docs/architecture.drawio.png. -->
 
-  %% Ingress
-  internet -->|SSH / bastion| fip --> igw
-  internet -->|HTTP/HTTPS| lb -->|droplet_ids| priv
-
-  %% Egress (NAT)
-  priv -.->|default route via<br/>gateway private IP| igw
-  igw ==>|MASQUERADE / NAT| internet
-
-  %% Firewalls
-  pubfw{{"Public Firewall<br/>attached to IGW droplet"}} -.protects.- igw
-  privfw{{"Private Firewall<br/>attached to private droplets"}} -.protects.- priv
-```
 
 ### How it works
 

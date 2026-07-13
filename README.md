@@ -68,7 +68,7 @@ droplets for inbound web traffic, and an optional bastion role on the gateway pr
 hardened SSH ingress.
 
 <div align="center">
-  <img src="https://raw.githubusercontent.com/hansohn/terraform-digitalocean-droplet/main/docs/architecture.drawio.png" alt="terraform-digitalocean-droplet architecture" width="820">
+  <img src="https://raw.githubusercontent.com/hansohn/terraform-digitalocean-droplet/main/docs/architecture.drawio.png" alt="terraform-digitalocean-droplet architecture" width="600">
 </div>
 
 <!-- Diagram source: docs/architecture.drawio — edit in draw.io / diagrams.net, then File > Export as > PNG to docs/architecture.drawio.png. -->

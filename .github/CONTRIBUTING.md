@@ -15,7 +15,7 @@ Thank you for your interest in contributing to terraform-digitalocean-droplet! T
 
 ## Code of Conduct
 
-This project adheres to a [Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [conduct@hansohn.io](mailto:conduct@hansohn.io).
+This project adheres to a [Code of Conduct](https://github.com/hansohn/.github/blob/HEAD/CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [conduct@hansohn.io](mailto:conduct@hansohn.io).
 
 ## Getting Started
 
@@ -179,7 +179,7 @@ All pull requests automatically run:
 
 ### Bug Reports
 
-Use the [Bug Report template](ISSUE_TEMPLATE/bug-report.yml) and include:
+Use the [Bug Report template](https://github.com/hansohn/terraform-digitalocean-droplet/issues/new?template=bug-report.yml) and include:
 - Clear description of the issue
 - Steps to reproduce
 - Expected vs actual behavior
@@ -188,7 +188,7 @@ Use the [Bug Report template](ISSUE_TEMPLATE/bug-report.yml) and include:
 
 ### Feature Requests
 
-Use the [Feature Request template](ISSUE_TEMPLATE/feature-request.yml) and describe:
+Use the [Feature Request template](https://github.com/hansohn/terraform-digitalocean-droplet/issues/new?template=feature-request.yml) and describe:
 - The problem or use case
 - Proposed solution
 - Alternative approaches considered
@@ -196,14 +196,14 @@ Use the [Feature Request template](ISSUE_TEMPLATE/feature-request.yml) and descr
 
 ### Support Requests
 
-Use the [Support Request template](ISSUE_TEMPLATE/support-request.yml) for:
+Use the [Support Request template](https://github.com/hansohn/terraform-digitalocean-droplet/issues/new?template=support-request.yml) for:
 - Questions about usage
 - Help with configuration
 - General inquiries
 
 ## Security
 
-If you discover a security vulnerability, please follow our [Security Policy](SECURITY.md) and report it to [security@hansohn.io](mailto:security@hansohn.io). Do not create a public issue.
+If you discover a security vulnerability, please follow our [Security Policy](https://github.com/hansohn/.github/blob/HEAD/SECURITY.md) and report it to [security@hansohn.io](mailto:security@hansohn.io). Do not create a public issue.
 
 ## License
 
